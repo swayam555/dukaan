@@ -64,7 +64,7 @@ export function getDb(): Promise<DeviceDb> {
     native.executeSync('PRAGMA journal_mode = WAL');
     native.executeSync('PRAGMA synchronous = NORMAL');
     native.executeSync('PRAGMA temp_store = MEMORY');
-    native.executeSync('PRAGMA cache_size = -8000');
+    native.executeSync('PRAGMA cache_size = -16000'); // decrypted-page cache: SQLCipher decrypts every miss
     const db = adapt(native);
     await migrate(db, MIGRATIONS);
     return db;

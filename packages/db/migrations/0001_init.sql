@@ -29,7 +29,7 @@ CREATE TABLE item (
   updated_hlc     TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX item_barcode ON item(barcode) WHERE barcode IS NOT NULL;
-CREATE INDEX item_name_key ON item(name_key) WHERE deleted = 0;
+CREATE INDEX item_name_key ON item(name_key, id) WHERE deleted = 0;
 CREATE INDEX item_category ON item(category, name_key) WHERE deleted = 0;
 
 -- Per-field LWW clocks for item / customer / supplier master data.
@@ -42,24 +42,22 @@ CREATE TABLE field_clock (
   PRIMARY KEY (entity, entity_id, field)
 ) WITHOUT ROWID;
 
+-- One column of phonetic keys (English + Hindi names + synonyms). Raw names and barcodes are NOT
+-- trigram-indexed: that halves the index and the pages a query touches (each page is decrypted by SQLCipher).
 CREATE VIRTUAL TABLE item_search USING fts5(
-  name, name_hi, translit, barcode,
+  translit,
   content = 'item', content_rowid = 'rowid',
   tokenize = 'trigram'
 );
 CREATE TRIGGER item_ai AFTER INSERT ON item WHEN new.deleted = 0 BEGIN
-  INSERT INTO item_search(rowid, name, name_hi, translit, barcode)
-  VALUES (new.rowid, new.name, new.name_hi, new.translit, coalesce(new.barcode, ''));
+  INSERT INTO item_search(rowid, translit) VALUES (new.rowid, new.translit);
 END;
 CREATE TRIGGER item_ad AFTER DELETE ON item WHEN old.deleted = 0 BEGIN
-  INSERT INTO item_search(item_search, rowid, name, name_hi, translit, barcode)
-  VALUES ('delete', old.rowid, old.name, old.name_hi, old.translit, coalesce(old.barcode, ''));
+  INSERT INTO item_search(item_search, rowid, translit) VALUES ('delete', old.rowid, old.translit);
 END;
-CREATE TRIGGER item_au AFTER UPDATE OF name, name_hi, translit, barcode, deleted ON item BEGIN
-  INSERT INTO item_search(item_search, rowid, name, name_hi, translit, barcode)
-  SELECT 'delete', old.rowid, old.name, old.name_hi, old.translit, coalesce(old.barcode, '') WHERE old.deleted = 0;
-  INSERT INTO item_search(rowid, name, name_hi, translit, barcode)
-  SELECT new.rowid, new.name, new.name_hi, new.translit, coalesce(new.barcode, '') WHERE new.deleted = 0;
+CREATE TRIGGER item_au AFTER UPDATE OF translit, deleted ON item BEGIN
+  INSERT INTO item_search(item_search, rowid, translit) SELECT 'delete', old.rowid, old.translit WHERE old.deleted = 0;
+  INSERT INTO item_search(rowid, translit) SELECT new.rowid, new.translit WHERE new.deleted = 0;
 END;
 
 CREATE TABLE item_batch (
@@ -98,6 +96,7 @@ CREATE TABLE item_rank (
   score     REAL NOT NULL DEFAULT 0,
   last_sold INTEGER NOT NULL DEFAULT 0
 ) WITHOUT ROWID;
+CREATE INDEX item_rank_score ON item_rank(score DESC);
 
 CREATE TABLE customer (
   id          TEXT PRIMARY KEY,

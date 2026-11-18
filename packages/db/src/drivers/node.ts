@@ -8,6 +8,7 @@ export function openNodeDb(path = ':memory:'): SqlDriver & { raw: Database.Datab
   raw.pragma('synchronous = NORMAL');
   raw.pragma('foreign_keys = OFF');
   raw.pragma('temp_store = MEMORY');
+  raw.pragma('cache_size = -16000');
   const cache = new Map<string, Database.Statement>();
   const prepare = (sql: string) => {
     let stmt = cache.get(sql);

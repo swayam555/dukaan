@@ -36,7 +36,7 @@ describe('buildSearchKeys', () => {
   it('indexes keys of both names plus synonyms with word-start markers', () => {
     const keys = buildSearchKeys('India Gate Basmati Rice 1kg', 'बासमती चावल');
     expect(keys).toContain('^basmati');
-    expect(keys.split(' ')).toContain('^caval');
+    expect(keys.split(' ')).toContain('^xaval');
     expect(keys.split(' ')).toContain('^rise');
   });
 });
@@ -49,14 +49,14 @@ describe('planSearch', () => {
     const plan = planSearch('chawal 5kg');
     expect(plan.kind).toBe('fts');
     if (plan.kind === 'fts') {
-      expect(plan.match).toContain('"chawal"');
-      expect(plan.match).toContain('"caval"');
+      
+      expect(plan.match).toContain('"xaval"');
       expect(plan.match).toContain('"rise"');
       expect(plan.match).toContain(' AND "5kg"');
     }
   });
   it('uses the word-start marker for two-letter tokens', () => {
-    expect(planSearch('da')).toEqual({ kind: 'fts', match: '"^da"' });
+    expect(planSearch('da')).toEqual({ kind: 'fts', match: '"^da"', clauses: [['^da']] });
   });
   it('falls back to a phonetic prefix scan when no trigram is possible', () => {
     expect(planSearch('gh')).toEqual({ kind: 'prefix', from: 'g', to: 'h' });

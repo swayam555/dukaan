@@ -25,15 +25,15 @@ describe('migrations', () => {
   it('keeps the FTS index in step with item inserts, renames and soft deletes', async () => {
     const db = openNodeDb();
     await migrate(db, MIGRATIONS);
-    await db.execute("INSERT INTO item(id, name, name_hi, translit) VALUES ('a', 'Basmati Rice 1kg', 'बासमती चावल', 'basmati chaval')");
+    await db.execute("INSERT INTO item(id, name, name_hi, translit) VALUES ('a', 'Basmati Rice 1kg', 'बासमती चावल', '^basmati ^rise ^xaval')");
     const hits = (q: string) => scalar<number>(db, 'SELECT count(*) FROM item_search WHERE item_search MATCH ?', [q]);
     expect(await hits('asmat')).toBe(1);
-    expect(await hits('चावल')).toBe(1);
-    await db.execute("UPDATE item SET name = 'Sona Masoori 1kg', translit = 'sona masuri' WHERE id = 'a'");
+    expect(await hits('xaval')).toBe(1);
+    await db.execute("UPDATE item SET name = 'Sona Masoori 1kg', translit = '^sona ^masuri' WHERE id = 'a'");
     expect(await hits('asmat')).toBe(0);
-    expect(await hits('masoor')).toBe(1);
+    expect(await hits('masur')).toBe(1);
     await db.execute("UPDATE item SET deleted = 1 WHERE id = 'a'");
-    expect(await hits('masoor')).toBe(0);
+    expect(await hits('masur')).toBe(0);
     await db.execute("INSERT INTO item_search(item_search) VALUES ('integrity-check')");
   });
 

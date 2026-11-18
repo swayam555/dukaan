@@ -97,18 +97,19 @@ export function phoneticKey(word: string): string {
   let s = (hasDevanagari(word) ? devanagariToLatin(word) : word).toLowerCase().normalize('NFKD').replace(/[̀-ͯ]/g, '');
   s = s.replace(/[^a-z0-9]/g, '');
   s = s
+    .replace(/x/g, 'ks')
     .replace(/ksh/g, 'ks')
-    .replace(/chh/g, 'c')
-    .replace(/ch/g, 'c')
+    .replace(/chh/g, 'x')
+    .replace(/ch/g, 'x')
     .replace(/sh/g, 's')
     .replace(/ph/g, 'f')
     .replace(/([kgjtdbp])h/g, '$1')
     .replace(/ck/g, 'k')
     .replace(/c(?=[eiy])/g, 's')
+    .replace(/c/g, 'k')
     .replace(/q/g, 'k')
     .replace(/w/g, 'v')
     .replace(/z/g, 'j')
-    .replace(/x/g, 'ks')
     .replace(/ee/g, 'i')
     .replace(/oo/g, 'u')
     .replace(/ou/g, 'au')
@@ -174,7 +175,7 @@ export function nameSortKey(name: string): string {
 
 export type SearchPlan =
   | { kind: 'barcode'; code: string }
-  | { kind: 'fts'; match: string }
+  | { kind: 'fts'; match: string; clauses: string[][] }
   | { kind: 'prefix'; from: string; to: string }
   | { kind: 'empty' };
 
@@ -193,22 +194,61 @@ export function planSearch(input: string): SearchPlan {
   if (/^\d{6,14}$/.test(q)) return { kind: 'barcode', code: q };
   const tokens = q.split(/\s+/).filter(Boolean);
   const clauses: string[] = [];
+  const structured: string[][] = [];
   for (const token of tokens) {
     const alternatives = new Set<string>();
-    const raw = token.toLowerCase().replace(FTS_SAFE, '');
     const key = phoneticKey(token);
-    if (Array.from(raw).length >= 3) alternatives.add(raw);
     if (key.length >= 3) alternatives.add(key);
-    if (key.length >= 1 && key.length <= 2) alternatives.add(`^${key}`);
+    else if (key.length === 2) alternatives.add(`^${key}`);
     for (const syn of synonymsOf(key)) if (!syn.includes(' ') && syn.length >= 2) alternatives.add(syn.length >= 3 ? syn : `^${syn}`);
-    const usable = [...alternatives].filter((a) => Array.from(a).length >= 3);
-    if (usable.length === 0) continue;
-    clauses.push(usable.length === 1 ? `"${usable[0]}"` : `(${usable.map((a) => `"${a}"`).join(' OR ')})`);
+    if (alternatives.size === 0) continue;
+    const clean = [...alternatives].map((a) => a.replace(FTS_SAFE, ''));
+    structured.push(clean);
+    const quoted = clean.map((a) => `"${a}"`);
+    clauses.push(quoted.length === 1 ? quoted[0]! : `(${quoted.join(' OR ')})`);
   }
   if (clauses.length === 0) {
     const k = phoneticKey(tokens[0] ?? '') || (tokens[0] ?? '').toLowerCase();
     if (!k) return { kind: 'empty' };
     return { kind: 'prefix', from: k, to: k.slice(0, -1) + String.fromCharCode(k.charCodeAt(k.length - 1) + 1) };
   }
-  return { kind: 'fts', match: clauses.join(' AND ') };
+  return { kind: 'fts', match: clauses.join(' AND '), clauses: structured };
+}
+
+/**
+ * Typo fallback ("parcetamol" → paracetamol). Candidates: items whose keys contain the first OR the second
+ * half of the longest typed word (one of them usually survives a single typo); the caller re-ranks those
+ * candidates with {@link keySimilarity}. Bounded work, no bm25 over a huge OR.
+ */
+export function planFuzzy(input: string): { match: string; keys: string[] } | null {
+  const keys = input.trim().split(/\s+/).map(phoneticKey).filter((k) => k.length >= 3);
+  const longest = keys.reduce((a, b) => (b.length > a.length ? b : a), '');
+  if (longest.length < 6) return null;
+  const mid = Math.ceil(longest.length / 2);
+  const halves = [longest.slice(0, Math.max(4, mid)), longest.slice(Math.min(longest.length - 4, mid))];
+  return { match: [...new Set(halves)].map((h) => `"${h}"`).join(' OR '), keys };
+}
+
+function trigrams(s: string): Set<string> {
+  const padded = `^${s}$`;
+  const out = new Set<string>();
+  for (let i = 0; i + 3 <= padded.length; i++) out.add(padded.slice(i, i + 3));
+  return out;
+}
+
+/** Σ over typed keys of the best trigram Dice similarity against the item's stored keys (0..n). */
+export function keySimilarity(typedKeys: readonly string[], storedTranslit: string): number {
+  const stored = storedTranslit.split(' ').map((k) => trigrams(k.replace(/^\^/, '')));
+  let total = 0;
+  for (const key of typedKeys) {
+    const a = trigrams(key);
+    let best = 0;
+    for (const b of stored) {
+      let common = 0;
+      for (const g of a) if (b.has(g)) common++;
+      best = Math.max(best, (2 * common) / (a.size + b.size));
+    }
+    total += best;
+  }
+  return total;
 }

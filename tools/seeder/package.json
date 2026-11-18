@@ -1,0 +1,19 @@
+{
+  "name": "@dukaan/seeder",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/generate.ts",
+  "types": "src/generate.ts",
+  "scripts": {
+    "seed": "tsx src/cli.ts",
+    "typecheck": "tsc -p ."
+  },
+  "dependencies": {
+    "@dukaan/core": "workspace:*",
+    "@dukaan/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "~6.0.3"
+  }
+}
