@@ -13,3 +13,4 @@ export * from './sync/ops';
 export * from './sync/apply';
 export * from './sync/writer';
 export * from './repos/bills';
+export * from './repos/customers';

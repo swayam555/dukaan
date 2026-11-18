@@ -56,6 +56,10 @@ export default function RootLayout() {
             <Stack.Screen name="(main)" />
             <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
             <Stack.Screen name="diagnostics" options={{ headerShown: true, title: 'Diagnostics' }} />
+            <Stack.Screen name="line/[key]" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="pay" options={{ headerShown: true, title: 'Payment' }} />
+            <Stack.Screen name="bill/[id]" options={{ gestureEnabled: false }} />
+            <Stack.Screen name="scan" options={{ headerShown: true, title: 'Scan' }} />
           </Stack.Protected>
         </Stack>
       </SafeAreaProvider>
