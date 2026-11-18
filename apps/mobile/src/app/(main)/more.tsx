@@ -30,6 +30,7 @@ export default function MoreScreen() {
         </View>
       </Card>
       <Link href="/settings"><Text variant="heading" tone="indigo">{t('more.settings')}</Text></Link>
+      <Link href="/diagnostics" testID="more-diagnostics"><Text variant="heading" tone="indigo">{t('more.diagnostics')}</Text></Link>
     </Screen>
   );
 }

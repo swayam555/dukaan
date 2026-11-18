@@ -55,6 +55,7 @@ export default function RootLayout() {
           <Stack.Protected guard={status === 'ready'}>
             <Stack.Screen name="(main)" />
             <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
+            <Stack.Screen name="diagnostics" options={{ headerShown: true, title: 'Diagnostics' }} />
           </Stack.Protected>
         </Stack>
       </SafeAreaProvider>

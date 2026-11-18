@@ -2,6 +2,7 @@ import { parseRupees, UNITS, uuidv7, type Unit } from '@dukaan/core';
 import type { SqlDriver, SqlExecutor } from '../driver';
 import { upsertItems, type ItemInput } from '../repos/items';
 import { applyStockDeltas } from '../repos/stock';
+import { tablesChanged } from '../changes';
 import { bomLength, CsvParser, detectDelimiter } from './csv';
 
 /** Random-access byte source: a file on device (expo-file-system) or disk (Node). */
@@ -163,6 +164,7 @@ export async function importItemsCsv(db: SqlDriver, opts: ImportOptions): Promis
       await tx.execute('UPDATE import_job SET byte_offset = ?, rows_done = ?, rows_failed = ?, updated_at = ? WHERE id = ?', [lastBoundary, rowsDone, rowsFailed, Date.now(), opts.jobId]);
     });
     offset = lastBoundary;
+    tablesChanged('item', 'stock');
     opts.onProgress?.({ bytesDone: offset, totalBytes: opts.source.size, rowsDone, rowsFailed });
     await opts.yieldEvery?.();
   };

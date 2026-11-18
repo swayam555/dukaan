@@ -2,7 +2,8 @@ import { isValidGstin, uuidv7 } from '@dukaan/core';
 import type { SqlDriver, SqlExecutor } from '../driver';
 import { getMeta, setMeta } from './meta';
 
-export type Role = 'owner' | 'cashier';
+import type { Role } from '../sync/ops';
+export type { Role };
 export type ShopProfile = { id: string; name: string; gstin: string; stateCode: string; address: string; phone: string; upiVpa: string; pharmacyMode: boolean; invoiceFooter: string };
 export type DeviceIdentity = { id: string; shopId: string; prefix: string; role: Role; name: string };
 export type LockSettings = { pinHash: string; pinLength: number; biometric: boolean; failedAttempts: number; lockedUntil: number };

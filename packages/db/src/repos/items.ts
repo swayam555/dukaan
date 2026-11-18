@@ -222,8 +222,8 @@ export async function bumpItemRank(tx: SqlExecutor, itemIds: readonly string[], 
   await tx.executeMany(
     `INSERT INTO item_rank(item_id, score, last_sold) VALUES (?, 1, ?)
      ON CONFLICT(item_id) DO UPDATE SET
-       score = item_rank.score * (1.0 / (1.0 + (excluded.last_sold - item_rank.last_sold) / 1209600000.0)) + 1,
-       last_sold = excluded.last_sold`,
+       score = item_rank.score * (1.0 / (1.0 + max(0, excluded.last_sold - item_rank.last_sold) / 1209600000.0)) + 1,
+       last_sold = max(item_rank.last_sold, excluded.last_sold)`,
     itemIds.map((id) => [id, nowMs]),
   );
 }

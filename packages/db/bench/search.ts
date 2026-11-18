@@ -2,20 +2,11 @@
 // the on-device version of the same queries lives in the app's Diagnostics screen.
 import { performance } from 'node:perf_hooks';
 import { generateItems } from '@dukaan/seeder';
-import { migrate, MIGRATIONS, scalar, searchItems, upsertItems, bumpItemRank } from '../src';
+import { percentile } from '../src/bench-queries';
+import { BENCH_QUERIES, migrate, MIGRATIONS, scalar, searchItems, upsertItems, bumpItemRank } from '../src';
 import { openNodeDb } from '../src/drivers/node';
 
-export const BENCH_QUERIES = [
-  'b', 'ba', 'bas', 'basm', 'basmati', 'basmati 5kg', 'chawal', 'चावल', 'chaawal', 'rice', 'atta 10kg', 'आटा',
-  'maggi', 'magi', 'noodles', 'toothpaste', 'colgate tooth', 'surf excel 1kg', 'ghee', 'घी', 'dal', 'toor', 'tur dal',
-  'paracetamol', 'parcetamol', 'haldi', 'हल्दी', 'masala', 'garam', 'pan masala', 'soap', 'sabun', 'lux', 'parle g',
-  'biscuit', 'oil 1l', 'sarson tel', 'sunflower', 'amul', 'butter', 'tea', 'chai patti', 'kaju', 'cashew', 'agarbatti',
-  'xyzzy', 'ab', 'n', 'namak', '8901000012345',
-];
 
-export function percentile(sorted: number[], p: number): number {
-  return sorted[Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length))]!;
-}
 
 async function main() {
   const count = Number(process.argv[2] ?? 100_000);

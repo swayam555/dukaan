@@ -190,6 +190,9 @@ importers:
       '@dukaan/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@dukaan/seeder':
+        specifier: workspace:*
+        version: link:../../tools/seeder
       '@op-engineering/op-sqlite':
         specifier: ^19.0.5
         version: 19.0.5(react-native@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(@react-native/metro-config@0.88.1(@babel/core@7.29.13(supports-color@8.1.1))(supports-color@8.1.1))(@types/react@19.3.0)(react@19.3.0)(supports-color@8.1.1))(react@19.3.0)
