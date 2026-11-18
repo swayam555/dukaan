@@ -133,7 +133,7 @@ type Op = {
   entityId: string;
   type: string;        // 'item.upsert', 'stock.delta', 'bill.create', 'bill.amend', ...
   payload: unknown;
-  hlc: string;         // "<physical ms 13 digits>:<counter 5 digits>:<deviceId>" — sorts lexicographically
+  hlc: string;         // "<physical ms, 15 digits>:<counter, 5 digits>:<deviceId>" — sorts lexicographically
 };
 ```
 

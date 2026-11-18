@@ -1,0 +1,18 @@
+{
+  "name": "dukaan",
+  "private": true,
+  "packageManager": "pnpm@12.21.0",
+  "scripts": {
+    "dev": "pnpm --filter @dukaan/mobile start",
+    "backend": "./scripts/dev-cert.sh && docker compose up -d --build",
+    "android": "pnpm --filter @dukaan/mobile android",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test:backend": "cd services/sync && ./mvnw -q -B verify",
+    "seed": "pnpm --filter @dukaan/seeder seed",
+    "bench:search": "pnpm --filter @dukaan/db bench:search"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3"
+  }
+}

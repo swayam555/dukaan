@@ -1,0 +1,22 @@
+{
+  "name": "@dukaan/core",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "jest",
+    "typecheck": "tsc -p ."
+  },
+  "devDependencies": {
+    "@swc/core": "^1.15.0",
+    "@swc/jest": "^0.2.39",
+    "@types/jest": "^30.0.0",
+    "fast-check": "^4.10.2",
+    "jest": "^30.5.2",
+    "typescript": "~6.0.3"
+  },
+  "dependencies": {
+    "@noble/hashes": "^2.4.0"
+  }
+}

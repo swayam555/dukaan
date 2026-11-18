@@ -1,0 +1,9 @@
+packages:
+  - apps/*
+  - packages/*
+  - tools/*
+nodeLinker: hoisted
+allowBuilds:
+  better-sqlite3: true
+  '@swc/core': true
+  '@parcel/watcher': false

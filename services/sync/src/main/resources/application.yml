@@ -1,0 +1,57 @@
+spring:
+  application:
+    name: dukaan-sync
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:4732/dukaan}
+    username: ${DB_USER:dukaan}
+    password: ${DB_PASSWORD:dukaan}
+    hikari:
+      maximum-pool-size: ${DB_POOL:20}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:4779}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP:localhost:4792}
+    producer:
+      acks: all
+      compression-type: lz4
+      properties:
+        enable.idempotence: true
+        linger.ms: 5
+  servlet:
+    multipart:
+      enabled: false
+
+server:
+  port: ${PORT:4781}
+  compression:
+    enabled: true
+    mime-types: application/json,application/x-ndjson
+    min-response-size: 1024
+  shutdown: graceful
+
+dukaan:
+  jwt-secret: ${JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
+  jwt-ttl: 30d
+  otp-ttl: 5m
+  otp-max-attempts: 5
+  dev-otp-in-response: ${DEV_OTP:true}
+  max-push-ops: 500
+  max-pull-ops: 1000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: dukaan-sync
