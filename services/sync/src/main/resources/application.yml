@@ -22,6 +22,11 @@ spring:
       properties:
         enable.idempotence: true
         linger.ms: 5
+    consumer:
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+    listener:
+      ack-mode: record
   servlet:
     multipart:
       enabled: false
