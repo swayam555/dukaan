@@ -222,6 +222,35 @@ Properties:
   (built by snapshot-builder into MinIO, with its `server_seq` watermark), loads it in one transaction,
   then pulls incrementally from the watermark. Falls back to full op replay if no snapshot exists.
 
+### 7a. As built (Phase 5) — where the implementation differs from the plan above
+
+| Plan | Built | Why |
+|---|---|---|
+| gzip NDJSON push/pull | JSON bodies; gzip on the wire (nginx `gunzip`, `GzipRequestFilter`) | Pages are ≤ 500 ops; NDJSON streaming bought nothing measurable and complicated error bodies |
+| Redis `SET NX` shop lock | `SELECT … FROM shop … FOR UPDATE` in the push transaction | One less moving part; the lock lives and dies with the transaction that assigns `server_seq`, so no lease expiry race |
+| `device_id uuid` | `text` | Device ids come from the phone (uuidv7 string); no parse on the hot path |
+| Catalogue import as N `item.upsert` | `item.bulk` op (items + opening stock, one op per 500 rows) | 100k-SKU import is ~200 ops, not 100k |
+| Pairing token HMAC + QR | Random single-use code in Redis (`GETDEL`, 5 min TTL), typed or pasted | Same security (unguessable, single-use, short-lived), no camera needed on the joining phone |
+| FCM notifier | `Notifier` consumer + `PushSender` interface; `LoggingPushSender` until an FCM key exists | Wiring is real, delivery is stubbed (documented) |
+| `GET /v1/sync/snapshot` | Deferred — new devices replay ops from 0 | A shop's op log is small (live e2e: 86 ops); revisit past ~50k ops/shop |
+
+**Cloud sync is opt-in.** The shop and owner device are created on the phone with no network. Settings →
+Cloud sync: owner enters the server URL + mobile number, gets an OTP (`POST /v1/auth/otp/request`), and
+`/otp/verify` registers the *device-generated* shop id and device id and returns the owner JWT. "Add a counter
+phone" asks `POST /v1/pairing/token` for a code; the new phone picks **Join a shop** at setup, claims the code
+(`/v1/pairing/claim` → cashier JWT + shop profile), creates its local shop with the same id and its own bill
+prefix, and gets the catalogue/stock/khata through its first pull.
+
+Device side: the JWT lives in SecureStore (Keystore), the non-secret config (`url`, `phone`, `connectedAt`) in the
+encrypted DB `meta` table. `HttpTransport` maps network/timeout/5xx/429/408 → `TransportError` (engine backs off
+2 s·2ⁿ with jitter), 401/403 → `AuthError` (sync stops, "reconnect this phone"), other 4xx → `RequestError`.
+The loop runs on start, every 60 s, on app foreground, and 1.5 s after a local write (debounced; pulls don't
+re-trigger because the kick only fires when unpushed ops exist).
+
+Verified live (`pnpm --filter @dukaan/db e2e:sync` against `docker compose up nginx`): owner + 2 paired counters,
+41 offline bills, owner re-price and void → identical state on all phones, server numbers 1..41 gap-free, and
+the Kafka-fed `rm_daily_sales` / `rm_stock` equal the phones' totals.
+
 ## 8. Device sync engine
 
 ```mermaid

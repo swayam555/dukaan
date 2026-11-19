@@ -24,7 +24,14 @@ jest with `-w 2`. A jest run and the first Gradle build were OOM-killed on 2026-
       GTIN check). Tests: core 81, db 36, app 9; eslint clean
       (`pnpm --filter mobile lint`; `expo lint` itself wrongly rejects eslint 9.39). PENDING: rebuild APK,
       install on dukaan_lowram, on-device search bench, camera scan on device, real printer smoke test.
-- Next: APK rebuild (setsid nohup) → device checks; mvnw verify, compose up; then Phase 5 sync.
+- [x] Phase 1/2/4 device + backend verification done (on-device p95 16.67 ms; mvnw verify; compose up healthy).
+- [x] Phase 5 Sync — engine + sim, Spring service (OTP, pairing, push/pull/ack, bill numbers, partitions,
+      outbox→Kafka, projector, notifier), app connect/join/sync loop. Live e2e:
+      `docker compose up -d --wait nginx && pnpm --filter @dukaan/db e2e:sync` (all green 2026-11-19).
+      Deferred: snapshot endpoint, real FCM sender.
+- Next: Phase 2 leftover CSV import UI; Phase 6 inventory/khata/reports; 7 hardening (Maestro, k6, OTel,
+  perf REPORT/BACKEND); 8 deliverables (README, INTERVIEW_NOTES, RESUME_BULLETS, EAS).
+- Gotcha: nginx.conf is a single-file bind mount — after editing use `docker compose up -d --force-recreate nginx`.
 - Background builds die when the Claude session restarts: launch Gradle with `setsid nohup … &`.
 
 ## Build commands

@@ -47,3 +47,21 @@
 - Fixed two device-only bugs: Hermes lacks `crypto.getRandomValues` (uuidv7 ids), so setup failed; now polyfilled via
   expo-crypto. Bottom buttons on stack screens sat under the Android nav bar; `Screen` now pads the bottom inset
   (tab screens opt out with `inTabs`).
+
+## Phase 5 — Sync (2026-11-19)
+- Device engine: push (≤ 500 ops, HLC order) → pull pages applied in one transaction with the cursor → ack;
+  single-flight, backoff 2 s·2ⁿ with jitter; HLC receive on every pulled op. `item.bulk` for catalogue imports.
+- 3-device simulation (in-memory server, random interleavings, drops and duplicates) converges every run.
+- Spring service: OTP login that registers a device-created shop, single-use pairing codes (Redis), JWT device
+  auth, push with a per-shop row lock and gap-free `server_seq`, server-assigned gap-free bill numbers per FY
+  (`bill.number` ops), owner-only op types rejected for cashiers, `ops` hash-partitioned ×16 then monthly by range
+  (job creates next month), outbox → Kafka relay (`shop.ops`, 12 partitions, key = shop), projector read
+  models (daily sales, item sales, stock, khata), notifier. Testcontainers `SyncFlowTest` 7/7.
+- App: `HttpTransport` + `SyncApi`, Settings → Cloud sync (OTP connect, sync status, add a counter phone),
+  Join-a-shop at setup, background sync loop; JWT in SecureStore.
+- nginx now forwards `Host` (Tomcat answered every proxied request with 400 because of the `sync_api` upstream name).
+- Live e2e against the compose stack: 3 phones, 86 ops, 41 bills — converged, numbers 1..41 gap-free, read models
+  match; two runs: whole script 1.9 s / 1.1 s, 2×3 sync round 295 ms / 240 ms (laptop, localhost).
+- Tests: db 49, app 11 (OTP connect, pairing join + push, against a fetch fake backed by the reference server).
+- Deferred: snapshot bootstrap, real FCM delivery.
+
