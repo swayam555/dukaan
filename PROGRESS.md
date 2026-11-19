@@ -38,3 +38,6 @@ jest with `-w 2`. A jest run and the first Gradle build were OOM-killed on 2026-
 ## Build commands
 - Android: `cd apps/mobile/android && ./gradlew assembleDebug -PreactNativeArchitectures=x86_64 -Dorg.gradle.jvmargs="-Xmx1536m" --max-workers=3`
 - Backend tests: `cd services/sync && ./mvnw -B verify`
+
+## Phase 6 — DONE (760b307, 2026-11-19)
+Khata + customer ledger, stock/purchases, reports + GSTR-1 export. Next: Phase 7.
