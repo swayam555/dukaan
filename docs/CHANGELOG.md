@@ -93,3 +93,28 @@
 - Tests: db 64, app 12 suites / 29 tests; tsc and lint clean; backend compiles.
 - Not run in Phase 7: the k6 test and the Maestro flows. While this phase was built, Docker and about 6.5 GB of the
   7 GB RAM were held by another project's stack, so neither the compose stack nor the emulator could start.
+
+
+## Phase 8 — Publish-readiness (2026-11-19)
+- Owner web dashboard at `/dashboard/`:
+  - OTP login → a 12 h token that can only GET `/v1/dashboard/**`.
+  - Summary: sales, bills, voids, GST, gross profit, khata dues, a daily chart, top items, biggest dues, phones, and projector lag ("catching up").
+  - Plain HTML/CSS/JS with no third-party scripts, behind a strict CSP in nginx.
+  - Projected bill lines now keep item names.
+  - `DashboardTest` (Testcontainers) is written, **not run yet**: Docker is held by another stack.
+  - Plan change: a static page served by sync-service instead of a React + Vite app. It is one read-only page, and this needs no build step and no second origin.
+- App icon, adaptive icon (with monochrome) and splash (light and dark), drawn from code (`tools/icons.py`). They replace the Expo defaults.
+- Permission rationale:
+  - The scan screen explains the camera before the system dialog and offers **Open settings** after a refusal (new test).
+  - The Bluetooth request carries a rationale.
+- `eas.json`: development (dev-client APK), preview (APK), production (AAB, Play internal draft).
+- Docs:
+  - `docs/store/`: listing, DPDP privacy policy, permissions + data-safety answers.
+  - `docs/DEMO_SCRIPT.md`, `README.md`, `docs/INTERVIEW_NOTES.md`, `docs/RESUME_BULLETS.md`.
+  - `docs/ARCHITECTURE.md` now describes the static dashboard.
+- Tests: core 83, db 16 suites / 64, app 13 suites / 30, all green; tsc clean; backend `test-compile` OK.
+- Still pending (see PROGRESS.md):
+  - k6, Maestro, `mvn verify` incl. DashboardTest
+  - release-build device numbers → `docs/perf/BACKEND.md` and REPORT.md
+  - in-app cloud-data deletion
+

@@ -20,7 +20,12 @@ export async function savePrinterSettings(s: PrinterSettings): Promise<void> {
 /** Android 12+ needs the runtime BLUETOOTH_CONNECT grant; older versions get it from the manifest. */
 export async function ensureBluetoothPermission(): Promise<boolean> {
   if (Platform.OS !== 'android' || Number(Platform.Version) < 31) return true;
-  const r = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT);
+  const r = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.BLUETOOTH_CONNECT, {
+    // Shown by Android if the owner said no once and tries again.
+    title: 'Connect to your receipt printer',
+    message: 'Dukaan needs "Nearby devices" only to talk to the Bluetooth printer you pair. It does not use your location or look for other devices.',
+    buttonPositive: 'Continue',
+  });
   return r === PermissionsAndroid.RESULTS.GRANTED;
 }
 

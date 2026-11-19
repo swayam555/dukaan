@@ -52,4 +52,23 @@ PENDING RUNS (need free RAM/Docker):
 - Maestro: install (`curl -fsSL https://get.maestro.mobile.dev | bash`), boot dukaan_lowram, install the APK,
   `maestro test apps/mobile/.maestro`.
 - Device: KDF time (Diagnostics → KDF), cold start, bill-save latency, memory → docs/perf/REPORT.md.
-Next: Phase 8 (publish-readiness + docs).
+Phase 8 done — see below.
+
+## Phase 8 — DONE in code (2026-11-19, 630f376 + docs commit)
+- Owner web dashboard: `/dashboard/`, an OTP login that gives a read-only token.
+- Icons and splash: `tools/icons.py`.
+- Permission rationale and eas.json.
+- Docs: `docs/store/*`, DEMO_SCRIPT, README, INTERVIEW_NOTES, RESUME_BULLETS.
+
+ALL PHASES DONE IN CODE. Remaining work is *runs*, blocked on RAM and Docker held by other sessions:
+1. `cd services/sync && ./mvnw -B verify`. This includes the new DashboardTest, which has never run.
+2. Dashboard smoke test:
+   - `docker compose up -d --build --wait nginx && docker compose up -d --force-recreate nginx`
+   - Open http://localhost:4780/dashboard/ and check the OTP login and summary.
+   - The phone must have connected cloud sync first.
+3. k6, then write docs/perf/BACKEND.md. Commands are under Phase 7.
+4. Maestro flows (see Phase 7).
+5. Release APK on dukaan_lowram:
+   - Measure cold start, bill-save latency, memory and KDF time, and write them to docs/perf/REPORT.md.
+   - Then update the "Not measured yet" list in README.md and RESUME_BULLETS.md.
+6. Gap: in-app "delete cloud data" (DPDP erasure). It is a manual request today.

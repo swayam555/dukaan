@@ -22,7 +22,7 @@ flowchart LR
   K --> SNB["snapshot-builder → MinIO/S3"]
   PRJ --> PG
   SNB --> S3[(MinIO)]
-  DASH["Owner web dashboard<br/>React + Vite (read-only)"] --> NGX
+  DASH["Owner web dashboard<br/>static page served by sync-service (read-only)"] --> NGX
   NTF -. "FCM: pull now" .-> D1 & D2 & D3
 ```
 
@@ -34,7 +34,7 @@ relay plus backup and reporting; billing never waits on it.
 | Path | What |
 |---|---|
 | `apps/mobile` | Expo (dev client, prebuild) + Expo Router app |
-| `apps/dashboard` | Owner web dashboard (React + Vite, read-only) |
+| `services/sync/src/main/resources/static/dashboard` | Owner web dashboard (plain HTML/CSS/JS, read-only, no build step) |
 | `packages/core` | Pure TypeScript domain: paise money, GST engine, units, HLC, op model, merge rules, transliteration, search query builder. No React, no native — runs in Node and Hermes |
 | `packages/db` | Versioned SQL migrations, `SqlDriver` interface, repositories, sync engine apply/collect. Tested in Node against `better-sqlite3` (same SQLite dialect + FTS5) |
 | `packages/native` | One Nitro module package (`@dukaan/native`) with two hybrid objects: `BluetoothPrinter` (Android classic SPP RFCOMM, iOS BLE write characteristic; chunked writes on a single IO thread) and `HidScanner` (Android `Window.Callback` wrapper that holds fast key bursts and replays them if they turn out to be typing; iOS no-op, the search box Enter path covers it). One package = one nitrogen run, one autolinking entry, one `.so` |

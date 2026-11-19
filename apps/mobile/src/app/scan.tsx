@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AppState, StyleSheet, View } from 'react-native';
+import { AppState, Linking, StyleSheet, View } from 'react-native';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useCameraPermission } from 'react-native-vision-camera';
@@ -41,9 +41,9 @@ export default function ScanScreen() {
   const [count, setCount] = useState(0);
   const gate = useRef(createScanGate(1200));
 
-  useEffect(() => {
-    if (!hasPermission) void requestPermission();
-  }, [hasPermission, requestPermission]);
+  // Ask only after the screen has said why (Play policy: in-context rationale before the system dialog).
+  const [denied, setDenied] = useState(false);
+  const ask = async () => setDenied(!(await requestPermission()));
 
   const onBarcodeScanned = (barcodes: Barcode[]) => {
     const now = Date.now();
@@ -71,8 +71,19 @@ export default function ScanScreen() {
   if (!hasPermission) {
     return (
       <Screen style={{ gap: space.md, justifyContent: 'center' }}>
-        <Text>Camera access is needed to scan barcodes.</Text>
-        <Button title="Allow camera" onPress={() => void requestPermission()} testID="scan-allow" />
+        <Text variant="heading">Scan with the camera</Text>
+        <Text testID="scan-rationale">
+          Dukaan uses the camera only on this screen, to read product barcodes into the bill. No photos or video are saved
+          or sent anywhere. You can also bill by typing the item name, or plug in a USB barcode scanner.
+        </Text>
+        {denied ? (
+          <>
+            <Text tone="brick">Camera is blocked for Dukaan. Turn it on in Settings › Apps › Dukaan › Permissions.</Text>
+            <Button title="Open settings" onPress={() => void Linking.openSettings()} testID="scan-settings" />
+          </>
+        ) : (
+          <Button title="Allow camera" onPress={() => void ask()} testID="scan-allow" />
+        )}
         <Button kind="secondary" title="Back to bill" onPress={() => router.back()} />
       </Screen>
     );
