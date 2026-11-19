@@ -71,6 +71,9 @@ export default function RootLayout() {
             <Stack.Screen name="pay" options={{ headerShown: true, title: 'Payment' }} />
             <Stack.Screen name="bill/[id]" options={{ gestureEnabled: false }} />
             <Stack.Screen name="scan" options={{ headerShown: true, title: 'Scan' }} />
+            <Stack.Screen name="customer/[id]" options={{ headerShown: true, title: 'Khata' }} />
+            <Stack.Screen name="stock" options={{ headerShown: true, title: 'Stock' }} />
+            <Stack.Screen name="reports" options={{ headerShown: true, title: 'Reports' }} />
           </Stack.Protected>
         </Stack>
       </SafeAreaProvider>

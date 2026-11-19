@@ -10,3 +10,4 @@ export * from './cart';
 export * from './invoice';
 export * from './escpos';
 export * from './scan';
+export * from './statement';

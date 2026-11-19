@@ -30,6 +30,8 @@ export default function MoreScreen() {
           ))}
         </View>
       </Card>
+      <Link href="/reports" testID="more-reports"><Text variant="heading" tone="indigo">Reports &amp; GST</Text></Link>
+      {owner ? <Link href="/stock" testID="more-stock"><Text variant="heading" tone="indigo">Stock &amp; purchases</Text></Link> : null}
       <Link href="/printer" testID="more-printer"><Text variant="heading" tone="indigo">Printer</Text></Link>
       {owner ? <Link href="/import" testID="more-import"><Text variant="heading" tone="indigo">Import items (CSV)</Text></Link> : null}
       <Link href="/settings"><Text variant="heading" tone="indigo">{t('more.settings')}</Text></Link>

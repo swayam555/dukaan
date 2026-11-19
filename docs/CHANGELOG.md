@@ -68,3 +68,9 @@
 - Tests: db 49, app 11 (OTP connect, pairing join + push, against a fetch fake backed by the reference server).
 - Deferred: snapshot bootstrap, real FCM delivery.
 
+
+## Phase 6 — Khata, inventory, reports (2026-11-19)
+- Khata list (to-collect total, due/all filter, search, add customer) and customer ledger: payments (cash/UPI/card), opening balance (owner), WhatsApp reminder with UPI link, PDF statement via expo-print.
+- Stock (owner): low-stock and expiring-batch views, reasoned adjustments, purchases with suppliers, batches, cost update and GST totals, purchase history.
+- Reports: date presets, sales/bills/avg/profit (owner)/tax/voids, Skia daily bar chart, payment-mode split, top items, GSTR-1 CSV export (B2B, B2CL, B2CS, HSN, docs) via share sheet.
+- Tests: app 8 suites / 23 tests green; db 14 suites / 58 tests green.

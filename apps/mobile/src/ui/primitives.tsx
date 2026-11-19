@@ -68,10 +68,10 @@ export function Button({ title, kind = 'primary', loading, icon, style, disabled
   );
 }
 
-export function Field({ label, error, style, ...rest }: TextInputProps & { label: string; error?: string | null }) {
+export function Field({ label, error, style, containerStyle, ...rest }: TextInputProps & { label: string; error?: string | null; containerStyle?: ViewProps['style'] }) {
   const c = useColors();
   return (
-    <View style={{ gap: space.xs }}>
+    <View style={[{ gap: space.xs }, containerStyle]}>
       <Text variant="label" tone="ink2">{label}</Text>
       <TextInput
         placeholderTextColor={c.ink3}

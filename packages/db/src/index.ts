@@ -20,3 +20,6 @@ export * from './sync/engine';
 export * from './sync/memory-server';
 export * from './sync/http-transport';
 export * from './sync/api';
+export * from './repos/inventory';
+export * from './repos/khata';
+export * from './repos/reports';
