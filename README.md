@@ -53,6 +53,13 @@ The commands are listed in `PROGRESS.md`.
 
 Needs Node 24, pnpm 12, JDK 21, Docker, and an Android SDK with an emulator.
 
+**Keys:** none are required, and there is no AI key because Dukaan has no AI. Two optional env files:
+
+| File | Copy from | Variables |
+|---|---|---|
+| `.env` (repo root, read by compose) | `.env.example` | `JWT_SECRET` (change outside your laptop), `DEV_OTP` (`true` returns the OTP in the response) |
+| `apps/mobile/.env` | `apps/mobile/.env.example` | `EXPO_PUBLIC_SYNC_URL` (default `http://localhost:4780`), `EXPO_PUBLIC_SENTRY_DSN` (optional) |
+
 ```bash
 pnpm install
 pnpm backend                       # compose: postgres, redis, kafka, minio, sync-service, nginx (:4780), grafana (:4730)

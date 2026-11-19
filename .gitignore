@@ -13,3 +13,9 @@ target/
 *.db-shm
 tools/seeder/out/
 infra/nginx/certs/*.key
+
+# build/bench outputs
+.cxx/
+packages/db/--
+*.sqlite
+*.db
