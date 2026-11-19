@@ -174,7 +174,8 @@ export async function importItemsCsv(db: SqlDriver, opts: ImportOptions): Promis
     await opts.yieldEvery?.();
   };
 
-  const handleRows = async (rows: ReturnType<CsvParser['push']>) => {
+  /** Returns true if the caller asked to stop right after a committed batch (resume restarts at that row boundary). */
+  const handleRows = async (rows: ReturnType<CsvParser['push']>): Promise<boolean> => {
     for (const row of rows) {
       const result = rowToItem(row.fields, mapping, uuidv7);
       if (result.ok) {
@@ -185,20 +186,25 @@ export async function importItemsCsv(db: SqlDriver, opts: ImportOptions): Promis
         if (errors.length < 500) errors.push({ row: rowsDone + rowsFailed, error: result.error });
       }
       lastBoundary = row.endOffset;
-      if (pending.length >= batchRows) await flush();
+      if (pending.length >= batchRows) {
+        await flush();
+        if (opts.shouldStop?.()) return true;
+      }
     }
+    return false;
   };
+  const stopped = () => ({ status: 'stopped' as const, progress: { bytesDone: offset, totalBytes: opts.source.size, rowsDone, rowsFailed }, errors });
 
   while (readAt < opts.source.size) {
     if (opts.shouldStop?.()) {
       await flush();
-      return { status: 'stopped', progress: { bytesDone: offset, totalBytes: opts.source.size, rowsDone, rowsFailed }, errors };
+      return stopped();
     }
     const chunk = await opts.source.read(readAt, Math.min(chunkBytes, opts.source.size - readAt));
     readAt += chunk.length;
-    await handleRows(parser.push(chunk));
+    if (await handleRows(parser.push(chunk))) return stopped();
   }
-  await handleRows(parser.end());
+  if (await handleRows(parser.end())) return stopped();
   await flush();
   await db.execute("UPDATE import_job SET status = 'done', updated_at = ? WHERE id = ?", [Date.now(), opts.jobId]);
   return { status: 'done', progress: { bytesDone: offset, totalBytes: opts.source.size, rowsDone, rowsFailed }, errors };

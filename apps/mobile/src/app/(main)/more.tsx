@@ -12,6 +12,7 @@ export default function MoreScreen() {
   const t = useT();
   const locale = useSession((s) => s.locale);
   const set = useSession((s) => s.set);
+  const owner = useSession((s) => s.device?.role === 'owner');
   const choose = async (next: Locale) => {
     set({ locale: next });
     await setMeta(await getDb(), META.locale, next);
@@ -30,6 +31,7 @@ export default function MoreScreen() {
         </View>
       </Card>
       <Link href="/printer" testID="more-printer"><Text variant="heading" tone="indigo">Printer</Text></Link>
+      {owner ? <Link href="/import" testID="more-import"><Text variant="heading" tone="indigo">Import items (CSV)</Text></Link> : null}
       <Link href="/settings"><Text variant="heading" tone="indigo">{t('more.settings')}</Text></Link>
       <Link href="/diagnostics" testID="more-diagnostics"><Text variant="heading" tone="indigo">{t('more.diagnostics')}</Text></Link>
     </Screen>

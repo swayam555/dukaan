@@ -66,6 +66,7 @@ export default function RootLayout() {
             <Stack.Screen name="settings" options={{ headerShown: true, title: 'Settings' }} />
             <Stack.Screen name="printer" options={{ headerShown: true, title: 'Printer' }} />
             <Stack.Screen name="diagnostics" options={{ headerShown: true, title: 'Diagnostics' }} />
+            <Stack.Screen name="import" options={{ headerShown: true, title: 'Import items' }} />
             <Stack.Screen name="line/[key]" options={{ presentation: 'modal' }} />
             <Stack.Screen name="pay" options={{ headerShown: true, title: 'Payment' }} />
             <Stack.Screen name="bill/[id]" options={{ gestureEnabled: false }} />

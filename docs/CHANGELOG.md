@@ -17,6 +17,9 @@
 - Deterministic 100k-SKU seeder; host benchmark p95 ≈ 6–7 ms (file-backed, laptop — **not** a device number).
 - Streamed, resumable CSV import with byte-offset checkpoints; FlashList v2 catalogue; Diagnostics screen
   that seeds and benchmarks on device (pending APK).
+- Import screen (owner only, More → Import items): pick a CSV (copied into app storage), live progress with rows/s,
+  Stop, and resume after Stop or an app kill; header errors are rejected before anything is written. The importer
+  now honours Stop after every committed batch, not only between 256 KB reads (added 2026-11-19).
 
 ## Phase 3 — Billing (2026-11-19)
 - GST engine (CGST/SGST vs IGST, cess, line + bill discounts, round-off) with fast-check property tests.

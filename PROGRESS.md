@@ -29,7 +29,8 @@ jest with `-w 2`. A jest run and the first Gradle build were OOM-killed on 2026-
       outbox→Kafka, projector, notifier), app connect/join/sync loop. Live e2e:
       `docker compose up -d --wait nginx && pnpm --filter @dukaan/db e2e:sync` (all green 2026-11-19).
       Deferred: snapshot endpoint, real FCM sender.
-- Next: Phase 2 leftover CSV import UI; Phase 6 inventory/khata/reports; 7 hardening (Maestro, k6, OTel,
+- [x] Phase 2 leftover: CSV import screen (`app/import.tsx`, `lib/csv-import.ts`, test/import.test.tsx).
+- Next: Phase 6 inventory/khata/reports; 7 hardening (Maestro, k6, OTel,
   perf REPORT/BACKEND); 8 deliverables (README, INTERVIEW_NOTES, RESUME_BULLETS, EAS).
 - Gotcha: nginx.conf is a single-file bind mount — after editing use `docker compose up -d --force-recreate nginx`.
 - Background builds die when the Claude session restarts: launch Gradle with `setsid nohup … &`.
