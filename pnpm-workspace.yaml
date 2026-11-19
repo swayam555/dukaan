@@ -7,3 +7,4 @@ allowBuilds:
   better-sqlite3: true
   '@swc/core': true
   '@parcel/watcher': false
+  esbuild: true

@@ -13,8 +13,11 @@ jest with `-w 2`. A jest run and the first Gradle build were OOM-killed on 2026-
 - [ ] Phase 2 Catalogue — translit, search repo (narrow bm25 / broad popularity regimes, bounded typo fallback),
       100k seeder, host bench (p95 ~6-7 ms file-backed), resumable CSV import, FlashList catalogue, Diagnostics
       (on-device seed + search bench) DONE. PENDING: on-device bench on dukaan_lowram (needs the APK).
-- [ ] Phase 3 Billing — GST engine (property tests, 1000 runs), op log core (OpWriter/applyOp/LWW/PN-counter),
-      saveBill/void/hold DONE + tested. Next: billing screen (search+scan+keypad), payments sheet, UPI QR, PDF.
+- [x] Phase 3 Billing — GST engine, op log core, saveBill/void/hold, billing screen (search + HID enter + cart +
+      held bills), line keypad, payments (split/change/UPI QR/khata), invoice PDF share, settings, seeder CLI.
+      App component tests: `cd apps/mobile && npx jest -w 2` (getDb mocked with real better-sqlite3; RNTL 14 =
+      async render/fireEvent). Phase 3 camera scan screen is a placeholder until Phase 4.
+- Next: verify APK + on-device bench, mvnw verify, compose up; then Phase 4 (Nitro printer/HID, VisionCamera).
 - Background builds die when the Claude session restarts: launch Gradle with `setsid nohup … &`.
 
 ## Build commands
