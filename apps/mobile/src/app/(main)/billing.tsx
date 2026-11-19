@@ -106,7 +106,7 @@ export default function BillingScreen() {
   const showingResults = query.trim().length > 0;
 
   return (
-    <Screen padded={false}>
+    <Screen inTabs padded={false}>
       <View style={{ paddingHorizontal: space.lg, paddingTop: space.md, gap: space.sm }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <Text variant="title">{t('tab.billing')}</Text>

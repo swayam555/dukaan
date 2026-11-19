@@ -23,10 +23,12 @@ export const Text = memo(function Text({ variant = 'body', tone = 'ink', style, 
   return <RNText {...rest} style={[typeScale[variant], { color: c[tone] }, style]} />;
 });
 
-export function Screen({ children, padded = true, style, ...rest }: ViewProps & { padded?: boolean }) {
+/** Stack screens keep their bottom content clear of the Android nav bar (edge-to-edge); tab screens pass
+ *  `inTabs` because the tab bar already pads for it. */
+export function Screen({ children, padded = true, inTabs = false, style, ...rest }: ViewProps & { padded?: boolean; inTabs?: boolean }) {
   const c = useColors();
   return (
-    <SafeAreaView edges={['top']} style={[{ flex: 1, backgroundColor: c.canvas }]}>
+    <SafeAreaView edges={inTabs ? ['top'] : ['top', 'bottom']} style={[{ flex: 1, backgroundColor: c.canvas }]}>
       <View {...rest} style={[{ flex: 1, padding: padded ? space.lg : 0 }, style]}>
         {children}
       </View>

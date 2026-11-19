@@ -4,7 +4,7 @@ import { Screen, Text } from '@/ui/primitives';
 export default function KhataScreen() {
   const t = useT();
   return (
-    <Screen>
+    <Screen inTabs>
       <Text variant="title">{t('tab.khata')}</Text>
     </Screen>
   );

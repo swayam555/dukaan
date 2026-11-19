@@ -17,7 +17,7 @@ export default function MoreScreen() {
     await setMeta(await getDb(), META.locale, next);
   };
   return (
-    <Screen style={{ gap: space.lg }}>
+    <Screen inTabs style={{ gap: space.lg }}>
       <Text variant="title">{t('tab.more')}</Text>
       <Card style={{ gap: space.md }}>
         <Text variant="heading">{t('more.language')}</Text>

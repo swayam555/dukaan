@@ -53,7 +53,7 @@ export default function CatalogueScreen() {
   const data = query.trim() ? search.hits : pages.rows;
 
   return (
-    <Screen padded={false}>
+    <Screen inTabs padded={false}>
       <View style={{ padding: space.lg, gap: space.sm }}>
         <Text variant="title">{t('tab.catalogue')}</Text>
         <TextInput

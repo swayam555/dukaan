@@ -27,7 +27,7 @@
 - A4 tax invoice / bill of supply HTML → PDF share; owner-editable shop profile; seeder CLI (SQLite and/or CSV).
 - Tests: core 58, db 30, app component tests 7 (RNTL 14 + jest-expo against real SQLite via better-sqlite3).
 
-## Phase 4 — Hardware (2026-11-19, device verification pending)
+## Phase 4 — Hardware (2026-11-19; emulator-verified, camera/printer need hardware)
 - `@dukaan/native` Nitro module (nitrogen 0.37): Bluetooth ESC/POS printer (Android SPP with insecure-socket
   fallback, chunked writes 512 B / 20 ms on one IO thread; iOS BLE) and an Android HID scanner that catches
   keyboard-wedge bursts in `dispatchKeyEvent` and replays non-scan typing untouched.
@@ -42,3 +42,8 @@
   (re-arms after 1.2 s out of view); GS1 check digits drop misreads before the DB lookup.
 - ESLint (eslint-config-expo flat) added; fixed 5 findings (setState in effect bodies, ref write in render,
   missing display name). Tests: core 81, db 36, app 9.
+- Device run on `dukaan_lowram` (2 GB emulator): 100k-SKU search **p95 16.67 ms** (p50 5.32, 250 queries) and seed
+  64.6 s. See docs/perf/REPORT.md. Setup → search → cash bill → HID wedge scan all pass on device.
+- Fixed two device-only bugs: Hermes lacks `crypto.getRandomValues` (uuidv7 ids), so setup failed; now polyfilled via
+  expo-crypto. Bottom buttons on stack screens sat under the Android nav bar; `Screen` now pads the bottom inset
+  (tab screens opt out with `inTabs`).

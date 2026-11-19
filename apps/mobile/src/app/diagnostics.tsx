@@ -4,11 +4,13 @@ import { space } from '@/constants/theme';
 import { dbStats, runSearchBench, seedCatalogue, type BenchResult } from '@/lib/bench';
 import { Button, Card, Text } from '@/ui/primitives';
 import { useColors } from '@/ui/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type Stats = Awaited<ReturnType<typeof dbStats>>;
 
 export default function DiagnosticsScreen() {
   const c = useColors();
+  const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<Stats | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [seeded, setSeeded] = useState<string | null>(null);
@@ -36,7 +38,7 @@ export default function DiagnosticsScreen() {
   };
 
   return (
-    <ScrollView style={{ backgroundColor: c.canvas }} contentContainerStyle={{ padding: space.lg, gap: space.lg }}>
+    <ScrollView style={{ backgroundColor: c.canvas }} contentContainerStyle={{ padding: space.lg, paddingBottom: space.lg + insets.bottom, gap: space.lg }}>
       <Card style={{ gap: space.xs }} testID="diag-stats">
         <Text variant="heading">Database</Text>
         <Text tone="ink2">Items: {stats?.items.toLocaleString('en-IN') ?? '…'}</Text>
