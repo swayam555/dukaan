@@ -41,3 +41,15 @@ jest with `-w 2`. A jest run and the first Gradle build were OOM-killed on 2026-
 
 ## Phase 6 — DONE (760b307, 2026-11-19)
 Khata + customer ledger, stock/purchases, reports + GSTR-1 export. Next: Phase 7.
+
+## Phase 7 — DONE in code (2026-11-19, commits 1fabeb9..8143ee8)
+Audit log, encrypted backup/restore, diagnostics sync counters + KDF bench + 500-item seed, OTel (backend), Sentry
+(opt-in, scrubbed), k6 script, Maestro flows.
+PENDING RUNS (need free RAM/Docker):
+- k6: `docker compose up -d --wait nginx` then
+  `docker run --rm --network host -v "$PWD/tools/k6:/k6" grafana/k6 run /k6/sync.js` → write docs/perf/BACKEND.md
+  (measured numbers only), `docker compose down`.
+- Maestro: install (`curl -fsSL https://get.maestro.mobile.dev | bash`), boot dukaan_lowram, install the APK,
+  `maestro test apps/mobile/.maestro`.
+- Device: KDF time (Diagnostics → KDF), cold start, bill-save latency, memory → docs/perf/REPORT.md.
+Next: Phase 8 (publish-readiness + docs).

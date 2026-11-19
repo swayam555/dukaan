@@ -74,3 +74,22 @@
 - Stock (owner): low-stock and expiring-batch views, reasoned adjustments, purchases with suppliers, batches, cost update and GST totals, purchase history.
 - Reports: date presets, sales/bills/avg/profit (owner)/tax/voids, Skia daily bar chart, payment-mode split, top items, GSTR-1 CSV export (B2B, B2CL, B2CS, HSN, docs) via share sheet.
 - Tests: app 8 suites / 23 tests green; db 14 suites / 58 tests green.
+
+## Phase 7 — Hardening (2026-11-19)
+- Audit log (owner): voids, discounts, ledger changes, stock and price edits, imports, and ops refused from other
+  phones, with synced / not synced / rejected / refused status and filters. It is a read-only view over the op log.
+- Encrypted backup/restore: the op log plus boot meta, scrypt (N=2^14) → AES-256-GCM. The header is plain but bound
+  as AAD. Restore replays ops onto a fresh install and keeps the bill series and sync cursor. A wrong passphrase or
+  an edited header is refused before anything is written.
+- Diagnostics: sync counters (log size, pending, rejected, quarantined, server position), an on-device KDF timing
+  button, and a 500-item demo seed.
+- Observability: Spring OpenTelemetry starter (10 % trace sampling, OTLP export off by default, no OTLP metrics).
+  The app has opt-in Sentry (only when `EXPO_PUBLIC_SENTRY_DSN` is set): no PII, no screenshots, breadcrumbs reduced
+  to navigation without messages.
+- Load test `tools/k6/sync.js` (50 shops × owner + cashier, push/pull 40 req/s each, thresholds p95 push < 250 ms,
+  pull < 150 ms). **Not run yet.**
+- Maestro flows `apps/mobile/.maestro` (setup + demo seed, cash bill with change, khata sale + part payment).
+  **Not run yet.**
+- Tests: db 64, app 12 suites / 29 tests; tsc and lint clean; backend compiles.
+- Not run in Phase 7: the k6 test and the Maestro flows. While this phase was built, Docker and about 6.5 GB of the
+  7 GB RAM were held by another project's stack, so neither the compose stack nor the emulator could start.
