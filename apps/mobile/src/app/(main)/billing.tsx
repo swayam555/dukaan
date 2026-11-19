@@ -3,11 +3,11 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
 import { cartProblems, computeBill, formatQuantity, formatRupees, type CartLine } from '@dukaan/core';
-import { findByBarcode, holdBill } from '@dukaan/db';
+import { findByBarcode, holdBill, listHeldBills, resumeHeldBill } from '@dukaan/db';
 import { radius, space, type as typeScale } from '@/constants/theme';
 import { useT } from '@/i18n';
 import { getDb } from '@/lib/db';
-import { useItemSearch } from '@/lib/hooks';
+import { useItemSearch, useLiveQuery } from '@/lib/hooks';
 import { useCart } from '@/state/cart';
 import { useSession } from '@/state/session';
 import { ItemRow } from '@/ui/ItemRow';
@@ -75,6 +75,15 @@ export default function BillingScreen() {
     cart.clear();
   }, [cart, totals.total]);
 
+  const held = useLiveQuery(['held'], (db) => listHeldBills(db));
+  /** Resuming parks the current cart first, so nothing is ever lost by switching customers. */
+  const resume = useCallback(async (id: string) => {
+    const db = await getDb();
+    if (cart.lines.length) await hold();
+    const parked = await resumeHeldBill(db, id);
+    if (parked) cart.load({ lines: parked.lines as CartLine[], billDiscount: parked.billDiscount, customerId: parked.customerId });
+  }, [cart, hold]);
+
   const showingResults = query.trim().length > 0;
 
   return (
@@ -100,6 +109,16 @@ export default function BillingScreen() {
           <Button kind="secondary" title="Scan" onPress={() => router.push('/scan')} testID="billing-scan" />
         </View>
       </View>
+
+      {!showingResults && held.data?.length ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm, paddingHorizontal: space.lg, paddingTop: space.sm }}>
+          {held.data.map((h) => (
+            <Pressable key={h.id} onPress={() => void resume(h.id)} testID={`held-${h.id}`} style={[styles.held, { borderColor: c.saffron }]}>
+              <Text variant="caption">⏸ {h.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+      ) : null}
 
       <View style={{ flex: 1, marginTop: space.sm }}>
         {showingResults ? (
@@ -138,5 +157,6 @@ export default function BillingScreen() {
 const styles = StyleSheet.create({
   search: { flex: 1, minHeight: 48, borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md },
   cartRow: { flexDirection: 'row', alignItems: 'center', minHeight: 60, paddingHorizontal: space.lg, borderBottomWidth: StyleSheet.hairlineWidth, gap: space.md },
+  held: { borderWidth: 1, borderRadius: radius.md, paddingHorizontal: space.md, paddingVertical: space.sm },
   footer: { padding: space.lg, gap: space.sm, borderTopWidth: StyleSheet.hairlineWidth },
 });
