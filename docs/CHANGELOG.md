@@ -37,5 +37,8 @@
   reclaim; receipts rebuilt from the stored bill (khata dues add a UPI QR, void bills are marked).
 - Printer screen (paired devices, paper size, auto-print, test print with timing, queue with retry);
   bill screen auto-prints once and shows print status.
+- Continuous camera scanner (VisionCamera 5 `CodeScanner`, EAN/UPC/Code-128): camera stays open, every new
+  code goes straight into the cart with haptics. A scan gate turns ~30 reads/s of the same code into one scan
+  (re-arms after 1.2 s out of view); GS1 check digits drop misreads before the DB lookup.
 - ESLint (eslint-config-expo flat) added; fixed 5 findings (setState in effect bodies, ref write in render,
-  missing display name). Tests: core 66, db 36, app 8.
+  missing display name). Tests: core 81, db 36, app 9.

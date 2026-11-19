@@ -9,3 +9,4 @@ export * from './gst';
 export * from './cart';
 export * from './invoice';
 export * from './escpos';
+export * from './scan';

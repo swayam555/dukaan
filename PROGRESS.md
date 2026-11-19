@@ -20,9 +20,10 @@ jest with `-w 2`. A jest run and the first Gradle build were OOM-killed on 2026-
 - [ ] Phase 4 Hardware — DONE in code: `packages/native` Nitro module (printer + HID, Kotlin; Swift BLE printer
       untested), print queue (`print_job.next_at`, backoff 2s→60s, 5 attempts, stale `printing` reclaimed after
       60 s), receipt from stored bill, Skia raster for Devanagari lines, Printer screen (pair/paper/auto/test/
-      queue+retry), auto-print on bill, HID wired into billing. Tests: core 66, db 36, app 8; eslint clean
+      queue+retry), auto-print on bill, HID wired into billing, VisionCamera continuous scan screen (scan gate +
+      GTIN check). Tests: core 81, db 36, app 9; eslint clean
       (`pnpm --filter mobile lint`; `expo lint` itself wrongly rejects eslint 9.39). PENDING: rebuild APK,
-      install on dukaan_lowram, on-device search bench, VisionCamera scan screen, real printer smoke test.
+      install on dukaan_lowram, on-device search bench, camera scan on device, real printer smoke test.
 - Next: APK rebuild (setsid nohup) → device checks; mvnw verify, compose up; then Phase 5 sync.
 - Background builds die when the Claude session restarts: launch Gradle with `setsid nohup … &`.
 

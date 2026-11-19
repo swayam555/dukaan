@@ -35,7 +35,7 @@ test('picking a loose item opens the weight editor and blocks checkout until wei
 test('keyboard-wedge fallback: barcode typed into search + Enter adds the item', async () => {
   await render(<BillingScreen />);
   const input = screen.getByTestId('billing-search');
-  await fireEvent.changeText(input, '8901058000017');
+  await fireEvent.changeText(input, '8901058000016');
   await fireEvent(input, 'submitEditing');
   await waitFor(() => expect(screen.getByTestId('bill-total')).toHaveTextContent('₹28.00'));
 });
@@ -54,9 +54,9 @@ test('native HID scanner: a captured burst adds by barcode; unknown codes are re
   const { __hid: hid } = jest.requireMock('@dukaan/native');
   const view = await render(<BillingScreen />);
   expect(hid.isActive).toBe(true);
-  await act(async () => hid.onScan('8901058000017', 38));
+  await act(async () => hid.onScan('8901058000016', 38));
   await waitFor(() => expect(screen.getByTestId('bill-total')).toHaveTextContent('₹28.00'));
-  await act(async () => hid.onScan('8901058000017', 41));
+  await act(async () => hid.onScan('8901058000016', 41));
   await waitFor(() => expect(screen.getByTestId('bill-total')).toHaveTextContent('₹56.00'));
   await act(async () => hid.onScan('0000000000000', 40));
   expect(await screen.findByTestId('billing-scan-msg')).toHaveTextContent('No item with barcode 0000000000000');
