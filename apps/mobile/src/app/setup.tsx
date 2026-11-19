@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { hashPin, uuidv7, isValidGstin, isValidPin, STATES, stateFromGstin } from '@dukaan/core';
-import { createShop, joinShop, validatePrefix } from '@dukaan/db';
+import { createShop, joinShop, restoreBackup, validatePrefix, type BackupHeader } from '@dukaan/db';
 import * as Crypto from 'expo-crypto';
 import { space } from '@/constants/theme';
 import { useT } from '@/i18n';
+import { nextFrame, pickBackup } from '@/lib/backup';
 import { getDb } from '@/lib/db';
 import { apiFor, DEFAULT_SYNC_URL, persistConnection } from '@/lib/sync';
 import { useSession } from '@/state/session';
@@ -13,7 +14,9 @@ import { Button, Field, Screen, Text } from '@/ui/primitives';
 export default function SetupScreen() {
   const t = useT();
   const set = useSession((s) => s.set);
-  const [mode, setMode] = useState<'new' | 'join'>('new');
+  const [mode, setMode] = useState<'new' | 'join' | 'restore'>('new');
+  const [backup, setBackup] = useState<{ bytes: Uint8Array; header: BackupHeader } | null>(null);
+  const [pass, setPass] = useState('');
   const [url, setUrl] = useState(DEFAULT_SYNC_URL);
   const [code, setCode] = useState('');
   const [name, setName] = useState('');
@@ -81,6 +84,39 @@ export default function SetupScreen() {
     }
   }
 
+  async function choose() {
+    setError(null);
+    try {
+      const picked = await pickBackup();
+      if (picked) setBackup(picked);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  /** Owner's new phone: rebuild everything from an encrypted backup file. */
+  async function restore() {
+    if (!backup) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await nextFrame();
+      const { shop, device } = await restoreBackup(await getDb(), backup.bytes, pass, {
+        pinHash: hashPin(pin, Crypto.getRandomBytes(16)), pinLength: pin.length,
+      });
+      set({
+        status: 'ready',
+        unlockedAt: Date.now(),
+        shop: { id: shop.id, name: shop.name, gstin: shop.gstin, stateCode: shop.stateCode, upiVpa: shop.upiVpa },
+        device: { id: device.id, prefix: device.prefix, role: device.role },
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const pinFields = (
     <View style={{ flexDirection: 'row', gap: space.md }}>
       <View style={{ flex: 1 }}>
@@ -91,6 +127,29 @@ export default function SetupScreen() {
       </View>
     </View>
   );
+
+  if (mode === 'restore') {
+    const h = backup?.header;
+    return (
+      <Screen>
+        <ScrollView contentContainerStyle={{ gap: space.lg, paddingBottom: space.xxl }} keyboardShouldPersistTaps="handled">
+          <Text variant="title">Restore from a backup</Text>
+          <Text tone="ink2">Use this when the old phone is lost or replaced. This phone takes over its bills and counter number.</Text>
+          <Button title={h ? 'Choose a different file' : 'Choose backup file'} kind={h ? 'ghost' : 'primary'} onPress={choose} testID="restore-pick" />
+          {h ? (
+            <Text variant="heading" testID="restore-header">
+              {h.shopName} · {new Date(h.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} · {h.ops.toLocaleString('en-IN')} entries
+            </Text>
+          ) : null}
+          {h ? <Field label="Backup passphrase" value={pass} onChangeText={setPass} secureTextEntry autoCapitalize="none" testID="restore-pass" /> : null}
+          {h ? pinFields : null}
+          {error ? <Text tone="brick" testID="restore-error">{error}</Text> : null}
+          {h ? <Button title="Restore" onPress={restore} disabled={!(pass.length >= 8 && isValidPin(pin) && pin === pin2)} loading={busy} testID="restore-submit" /> : null}
+          <Button title="Set up a new shop instead" kind="ghost" onPress={() => { setMode('new'); setError(null); }} />
+        </ScrollView>
+      </Screen>
+    );
+  }
 
   if (mode === 'join') {
     return (
@@ -134,6 +193,7 @@ export default function SetupScreen() {
         {error ? <Text tone="brick">{error}</Text> : null}
         <Button title={t('setup.create')} onPress={submit} disabled={!canSubmit} loading={busy} testID="setup-submit" />
         <Button title="Join an existing shop" kind="ghost" onPress={() => { setMode('join'); setPrefix('C2'); setError(null); }} testID="setup-join" />
+        <Button title="Restore from a backup" kind="ghost" onPress={() => { setMode('restore'); setError(null); }} testID="setup-restore" />
       </ScrollView>
     </Screen>
   );

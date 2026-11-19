@@ -24,3 +24,4 @@ export * from './repos/inventory';
 export * from './repos/khata';
 export * from './repos/reports';
 export * from './repos/audit';
+export * from './backup';

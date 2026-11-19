@@ -12,9 +12,12 @@
     "e2e:sync": "tsx scripts/e2e-sync.ts"
   },
   "dependencies": {
-    "@dukaan/core": "workspace:*"
+    "@dukaan/core": "workspace:*",
+    "@noble/ciphers": "^2.4.0",
+    "@noble/hashes": "^2.4.0"
   },
   "devDependencies": {
+    "@dukaan/seeder": "workspace:*",
     "@swc/core": "^1.15.0",
     "@swc/jest": "^0.2.39",
     "@types/better-sqlite3": "^7.6.13",
@@ -23,7 +26,6 @@
     "better-sqlite3": "^13.2.0",
     "fast-check": "^4.10.2",
     "jest": "^30.5.2",
-    "typescript": "~6.0.3",
-    "@dukaan/seeder": "workspace:*"
+    "typescript": "~6.0.3"
   }
 }
