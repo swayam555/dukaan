@@ -1,0 +1,41 @@
+# Sell on khata to a new customer, then take a part payment; balance moves both ways.
+appId: in.dukaan.pos
+name: Khata sale and payment
+---
+- launchApp
+- runFlow:
+    when: { visible: { id: lock-message } }
+    commands:
+      - tapOn: "2"
+      - tapOn: "4"
+      - tapOn: "6"
+      - tapOn: "8"
+- tapOn: Billing
+- tapOn: { id: billing-search }
+- inputText: atta
+- extendedWaitUntil:
+    visible: { id: "item-.*" }
+    timeout: 10000
+- tapOn: { id: "item-.*", index: 0 }
+- hideKeyboard
+- tapOn: { id: billing-charge }
+- tapOn: { id: pay-only-credit }
+- tapOn: { id: pay-customer }
+- inputText: Ramesh
+- hideKeyboard
+- tapOn: { id: pay-confirm }
+- extendedWaitUntil:
+    visible: ".*-00000\\d.*"
+    timeout: 15000
+- tapOn: Khata
+- extendedWaitUntil:
+    visible: Ramesh
+    timeout: 10000
+- tapOn: Ramesh
+- assertVisible: { id: cust-balance }
+- tapOn: { id: cust-pay }
+- tapOn: { id: cust-amount }
+- inputText: "10"
+- hideKeyboard
+- tapOn: { id: cust-save }
+- assertVisible: { id: "ledger-.*" }

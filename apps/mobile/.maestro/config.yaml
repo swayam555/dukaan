@@ -1,0 +1,7 @@
+# Run: maestro test .maestro   (emulator or phone with the dev/release build installed)
+flows:
+  - 01-setup.yaml
+  - 02-bill.yaml
+  - 03-khata.yaml
+executionOrder:
+  continueOnFailure: false

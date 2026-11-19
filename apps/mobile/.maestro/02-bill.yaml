@@ -1,0 +1,40 @@
+# Search, add two items, pay cash with change, bill number shows up.
+appId: in.dukaan.pos
+name: Cash bill
+---
+- launchApp
+- runFlow:
+    when: { visible: { id: lock-message } }
+    commands:
+      - tapOn: "2"
+      - tapOn: "4"
+      - tapOn: "6"
+      - tapOn: "8"
+- tapOn: Billing
+- tapOn: { id: billing-search }
+- inputText: rice
+- extendedWaitUntil:
+    visible: { id: "item-.*" }
+    timeout: 10000
+- tapOn: { id: "item-.*", index: 0 }
+- tapOn: { id: billing-search }
+- eraseText
+- inputText: soap
+- extendedWaitUntil:
+    visible: { id: "item-.*" }
+    timeout: 10000
+- tapOn: { id: "item-.*", index: 0 }
+- hideKeyboard
+- assertVisible: { id: "cart-.*" }
+- tapOn: { id: billing-charge }
+- extendedWaitUntil:
+    visible: { id: pay-confirm }
+    timeout: 10000
+- tapOn: { id: pay-tendered }
+- inputText: "2000"
+- hideKeyboard
+- assertVisible: { id: pay-change }
+- tapOn: { id: pay-confirm }
+- extendedWaitUntil:
+    visible: ".*-000001.*"
+    timeout: 15000

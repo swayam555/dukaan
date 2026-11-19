@@ -24,10 +24,10 @@ export default function DiagnosticsScreen() {
     return () => { live = false; };
   }, []);
 
-  const seed = async () => {
+  const seed = async (count: number) => {
     setBusy('Seeding 0');
-    const ms = await seedCatalogue(100_000, (n) => setBusy(`Seeding ${n.toLocaleString('en-IN')}`));
-    setSeeded(`Seeded 100,000 items in ${(ms / 1000).toFixed(1)} s`);
+    const ms = await seedCatalogue(count, (n) => setBusy(`Seeding ${n.toLocaleString('en-IN')}`));
+    setSeeded(`Seeded ${count.toLocaleString('en-IN')} items in ${(ms / 1000).toFixed(1)} s`);
     setBusy(null);
     await refresh();
   };
@@ -63,7 +63,8 @@ export default function DiagnosticsScreen() {
       </Card>
       <Card style={{ gap: space.md }}>
         <Text variant="heading">Performance</Text>
-        <Button kind="secondary" title="Seed 100k demo catalogue" onPress={seed} disabled={!!busy} testID="diag-seed" />
+        <Button kind="secondary" title="Seed 100k demo catalogue" onPress={() => seed(100_000)} disabled={!!busy} testID="diag-seed" />
+        <Button kind="ghost" title="Seed 500 demo items" onPress={() => seed(500)} disabled={!!busy} testID="diag-seed-small" />
         {seeded ? <Text tone="leaf" testID="diag-seeded">{seeded}</Text> : null}
         <Button kind="secondary" title="Run search benchmark" onPress={runBench} disabled={!!busy} testID="diag-bench" />
         {bench ? (
