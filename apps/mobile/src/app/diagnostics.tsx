@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ScrollView } from 'react-native';
 import { space } from '@/constants/theme';
-import { dbStats, runSearchBench, seedCatalogue, type BenchResult } from '@/lib/bench';
+import { dbStats, runKdfBench, runSearchBench, seedCatalogue, type BenchResult } from '@/lib/bench';
 import { Button, Card, Text } from '@/ui/primitives';
 import { useColors } from '@/ui/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -15,6 +15,7 @@ export default function DiagnosticsScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [seeded, setSeeded] = useState<string | null>(null);
   const [bench, setBench] = useState<BenchResult | null>(null);
+  const [kdf, setKdf] = useState<number[] | null>(null);
 
   const refresh = useCallback(async () => setStats(await dbStats()), []);
   useEffect(() => {
@@ -37,6 +38,12 @@ export default function DiagnosticsScreen() {
     setBusy(null);
   };
 
+  const runKdf = async () => {
+    setBusy('Timing backup key derivation');
+    setKdf((await runKdfBench()).ms);
+    setBusy(null);
+  };
+
   return (
     <ScrollView style={{ backgroundColor: c.canvas }} contentContainerStyle={{ padding: space.lg, paddingBottom: space.lg + insets.bottom, gap: space.lg }}>
       <Card style={{ gap: space.xs }} testID="diag-stats">
@@ -44,7 +51,15 @@ export default function DiagnosticsScreen() {
         <Text tone="ink2">Items: {stats?.items.toLocaleString('en-IN') ?? '…'}</Text>
         <Text tone="ink2">Bills: {stats?.bills.toLocaleString('en-IN') ?? '…'}</Text>
         <Text tone="ink2">Size: {stats ? `${stats.sizeMb.toFixed(1)} MB (SQLCipher)` : '…'}</Text>
-        <Text tone="ink2">Pending sync ops: {stats?.pendingOps ?? '…'}</Text>
+      </Card>
+      <Card style={{ gap: space.xs }} testID="diag-sync">
+        <Text variant="heading">Sync</Text>
+        <Text tone="ink2">Changes in the log: {stats?.ops.toLocaleString('en-IN') ?? '…'}</Text>
+        <Text tone="ink2">Waiting to send: {stats?.pendingOps ?? '…'}</Text>
+        <Text tone={stats?.rejectedOps ? 'brick' : 'ink2'}>Rejected by the server: {stats?.rejectedOps ?? '…'}</Text>
+        <Text tone={stats?.quarantined ? 'brick' : 'ink2'}>Refused from other phones: {stats?.quarantined ?? '…'}</Text>
+        <Text tone="ink2">Server position: {stats?.pullSeq ?? '…'}</Text>
+        <Button kind="secondary" title="Refresh" onPress={refresh} disabled={!!busy} testID="diag-refresh" />
       </Card>
       <Card style={{ gap: space.md }}>
         <Text variant="heading">Performance</Text>
@@ -56,6 +71,8 @@ export default function DiagnosticsScreen() {
             {bench.items.toLocaleString('en-IN')} items · {bench.samples} queries · p50 {bench.p50} ms · p95 {bench.p95} ms · max {bench.max} ms
           </Text>
         ) : null}
+        <Button kind="secondary" title="Time backup key derivation" onPress={runKdf} disabled={!!busy} testID="diag-kdf" />
+        {kdf ? <Text tone="ink2" testID="diag-kdf-result">scrypt N=2^14: {kdf.join(' / ')} ms</Text> : null}
         {busy ? <Text tone="saffron" testID="diag-busy">{busy}…</Text> : null}
       </Card>
     </ScrollView>

@@ -1,4 +1,4 @@
-import { BENCH_QUERIES, percentile, searchItems, scalar, tablesChanged, upsertItems, bumpItemRank } from '@dukaan/db';
+import { BENCH_QUERIES, deriveBackupKey, percentile, searchItems, scalar, tablesChanged, upsertItems, bumpItemRank } from '@dukaan/db';
 import { generateItems } from '@dukaan/seeder';
 import { getDb } from './db';
 
@@ -48,12 +48,35 @@ export async function runSearchBench(rounds = 6): Promise<BenchResult> {
 
 export async function dbStats() {
   const db = await getDb();
-  const [items, pages, pageSize, pendingOps, bills] = await Promise.all([
+  const [items, pages, pageSize, pendingOps, bills, ops, rejectedOps, quarantined, pullSeq] = await Promise.all([
     scalar<number>(db, 'SELECT count(*) FROM item'),
     scalar<number>(db, 'PRAGMA page_count'),
     scalar<number>(db, 'PRAGMA page_size'),
     scalar<number>(db, 'SELECT count(*) FROM op_log WHERE server_seq IS NULL AND local = 1'),
     scalar<number>(db, 'SELECT count(*) FROM bill'),
+    scalar<number>(db, 'SELECT count(*) FROM op_log'),
+    scalar<number>(db, 'SELECT count(*) FROM op_log WHERE server_seq = -1'),
+    scalar<number>(db, 'SELECT count(*) FROM op_quarantine'),
+    scalar<string>(db, "SELECT value FROM sync_state WHERE key = 'pull_seq'"),
   ]);
-  return { items: items ?? 0, sizeMb: ((pages ?? 0) * (pageSize ?? 0)) / 1048576, pendingOps: pendingOps ?? 0, bills: bills ?? 0 };
+  return {
+    items: items ?? 0, sizeMb: ((pages ?? 0) * (pageSize ?? 0)) / 1048576, pendingOps: pendingOps ?? 0, bills: bills ?? 0,
+    ops: ops ?? 0, rejectedOps: rejectedOps ?? 0, quarantined: quarantined ?? 0, pullSeq: Number(pullSeq ?? 0),
+  };
+}
+
+/** Times the backup key derivation (scrypt, BACKUP_KDF) on this phone; this is most of the backup/restore wait. */
+export async function runKdfBench(rounds = 3): Promise<{ label: string; rounds: number; ms: number[]; median: number }> {
+  const salt = new Uint8Array(16);
+  const ms: number[] = [];
+  for (let i = 0; i < rounds; i++) {
+    await yieldToUi();
+    const s = performance.now();
+    deriveBackupKey('bench-passphrase', salt);
+    ms.push(Math.round(performance.now() - s));
+  }
+  const median = [...ms].sort((a, b) => a - b)[Math.floor(rounds / 2)]!;
+  const result = { label: 'kdf', rounds, ms, median };
+  console.log('[DUKAAN_BENCH]', JSON.stringify(result));
+  return result;
 }

@@ -42,7 +42,8 @@ const enc = new TextEncoder();
 const dec = new TextDecoder();
 const b64 = (u: Uint8Array) => { let s = ''; for (const b of u) s += String.fromCharCode(b); return btoa(s); };
 const unb64 = (s: string) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-const deriveKey = (pass: string, salt: Uint8Array, k: { N: number; r: number; p: number }) => scrypt(pass.normalize('NFKC'), salt, { ...k, dkLen: 32 });
+/** Exposed so the diagnostics screen can time it on a real phone. */
+export const deriveBackupKey = (pass: string, salt: Uint8Array, k: { N: number; r: number; p: number } = BACKUP_KDF) => scrypt(pass.normalize('NFKC'), salt, { ...k, dkLen: 32 });
 
 export async function createBackup(
   db: SqlExecutor, passphrase: string, opts: { now?: number; kdf?: { N: number; r: number; p: number } } = {},
@@ -70,7 +71,7 @@ export async function createBackup(
     kdf: { alg: 'scrypt', ...kdf, salt: b64(salt) }, nonce: b64(nonce),
   };
   const headerBytes = enc.encode(JSON.stringify(header));
-  const sealed = gcm(deriveKey(passphrase, salt, kdf), nonce, headerBytes).encrypt(enc.encode(JSON.stringify(body)));
+  const sealed = gcm(deriveBackupKey(passphrase, salt, kdf), nonce, headerBytes).encrypt(enc.encode(JSON.stringify(body)));
   const out = new Uint8Array(4 + 1 + 4 + headerBytes.length + sealed.length);
   out.set(MAGIC, 0);
   out[4] = VERSION;
@@ -93,7 +94,7 @@ function open(bytes: Uint8Array, passphrase: string): Body {
   const header = readBackupHeader(bytes);
   const len = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(5);
   const headerBytes = bytes.subarray(9, 9 + len);
-  const key = deriveKey(passphrase, unb64(header.kdf.salt), header.kdf);
+  const key = deriveBackupKey(passphrase, unb64(header.kdf.salt), header.kdf);
   let plain: Uint8Array;
   try {
     plain = gcm(key, unb64(header.nonce), headerBytes).decrypt(bytes.subarray(9 + len));
