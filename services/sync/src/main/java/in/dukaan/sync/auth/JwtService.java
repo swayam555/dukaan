@@ -27,6 +27,10 @@ public class JwtService {
     }
 
     public String issue(DevicePrincipal p) {
+        return issue(p, props.jwtTtl());
+    }
+
+    public String issue(DevicePrincipal p, java.time.Duration ttl) {
         var now = Instant.now();
         return Jwts.builder()
                 .subject(p.deviceId().toString())
@@ -34,7 +38,7 @@ public class JwtService {
                 .claim("role", p.role())
                 .claim("prefix", p.prefix())
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(props.jwtTtl())))
+                .expiration(Date.from(now.plus(ttl)))
                 .signWith(key)
                 .compact();
     }

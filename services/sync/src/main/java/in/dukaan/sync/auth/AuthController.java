@@ -40,6 +40,11 @@ public class AuthController {
 
     public record VerifyRequest(@NotBlank String phone, @NotBlank String otp, @Valid @NotNull ShopInfo shop, @Valid @NotNull DeviceInfo device) {}
 
+    public record DashboardLogin(@NotBlank String phone, @NotBlank String otp) {}
+
+    /** Owner web dashboard: same phone OTP, but a 12-hour read-only token for the shop that phone owns. */
+    public static final java.time.Duration DASHBOARD_TTL = java.time.Duration.ofHours(12);
+
     @PostMapping("/otp/request")
     public Map<String, Object> request(@Valid @RequestBody OtpRequest body) {
         var phone = OtpService.normalisePhone(body.phone());
@@ -74,6 +79,18 @@ public class AuthController {
                 """).params(body.device().id(), body.shop().id(), body.device().name(), body.device().prefix()).update();
         var principal = new DevicePrincipal(body.device().id(), body.shop().id(), "owner", body.device().prefix());
         return Map.of("token", jwt.issue(principal), "shopId", body.shop().id(), "role", "owner");
+    }
+
+    @PostMapping("/dashboard")
+    public Map<String, Object> dashboard(@Valid @RequestBody DashboardLogin body) {
+        var phone = OtpService.normalisePhone(body.phone());
+        otp.verify(phone, body.otp());
+        record Shop(UUID id, String name) {}
+        var shop = jdbc.sql("SELECT id, name FROM shop WHERE owner_phone = ?").param(phone).query(Shop.class).optional()
+                .orElseThrow(() -> new ApiException(org.springframework.http.HttpStatus.NOT_FOUND, "no_shop",
+                        "no shop is linked to this phone yet; connect the app to cloud sync first"));
+        var principal = new DevicePrincipal(shop.id(), shop.id(), DevicePrincipal.DASHBOARD, "");
+        return Map.of("token", jwt.issue(principal, DASHBOARD_TTL), "shopName", shop.name(), "expiresIn", DASHBOARD_TTL.toSeconds());
     }
 
     private static String nz(String s) { return s == null ? "" : s; }

@@ -11,7 +11,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
-/** Bearer device JWT on /v1/** except auth endpoints; rejects revoked devices. */
+/** Bearer device JWT on /v1/** except auth endpoints; rejects revoked devices. Dashboard tokens: GET /v1/dashboard/** only. */
 @Component
 public class AuthFilter extends OncePerRequestFilter {
     public static final String PRINCIPAL = "dukaan.principal";
@@ -35,6 +35,13 @@ public class AuthFilter extends OncePerRequestFilter {
         try {
             if (header == null || !header.startsWith("Bearer ")) throw ApiException.unauthorized("missing bearer token");
             var principal = jwt.verify(header.substring(7));
+            if (principal.isDashboard()) {
+                // Web sessions can only read the dashboard; they can never push, pull or pair.
+                if (!"GET".equals(req.getMethod()) || !req.getRequestURI().startsWith("/v1/dashboard/")) throw ApiException.forbidden("dashboard session is read-only");
+                req.setAttribute(PRINCIPAL, principal);
+                chain.doFilter(req, res);
+                return;
+            }
             var revoked = jdbc.sql("SELECT revoked FROM device WHERE id = ?").param(principal.deviceId())
                     .query(Boolean.class).optional().orElse(true);
             if (revoked) throw ApiException.unauthorized("device revoked or unknown");

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Dukaan · Owner dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="bar">
+  <div class="brand"><span class="mark">दु</span> Dukaan <span class="muted" id="shop-name"></span></div>
+  <button class="link" id="logout" hidden>Sign out</button>
+</header>
+
+<main>
+  <section id="login" class="card narrow">
+    <h1>Owner dashboard</h1>
+    <p class="muted">Sign in with the phone number you used to turn on cloud sync in the app. This page is read-only.</p>
+    <form id="phone-form">
+      <label for="phone">Mobile number</label>
+      <input id="phone" inputmode="numeric" autocomplete="tel" placeholder="98765 43210" required>
+      <button type="submit">Send OTP</button>
+    </form>
+    <form id="otp-form" hidden>
+      <label for="otp">OTP</label>
+      <input id="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required>
+      <button type="submit">Open dashboard</button>
+    </form>
+    <p class="error" id="login-error" role="alert"></p>
+    <p class="hint" id="dev-otp"></p>
+  </section>
+
+  <section id="dash" hidden>
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Period">
+        <button data-days="1">Today</button><button data-days="7" aria-pressed="true">7 days</button><button data-days="30">30 days</button><button data-days="90">90 days</button>
+      </div>
+      <span class="muted" id="fresh"></span>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><span>Sales</span><strong id="k-sales">–</strong><small id="k-bills"></small></div>
+      <div class="kpi"><span>Gross profit</span><strong id="k-profit">–</strong><small>after GST and item cost</small></div>
+      <div class="kpi"><span>GST collected</span><strong id="k-tax">–</strong><small id="k-voids"></small></div>
+      <div class="kpi accent"><span>To collect (khata)</span><strong id="k-due">–</strong><small id="k-due-n"></small></div>
+    </div>
+
+    <div class="card">
+      <h2>Sales by day</h2>
+      <div id="chart" class="chart" role="img"></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card"><h2>Top items</h2><table id="t-items"><thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Sales</th></tr></thead><tbody></tbody></table></div>
+      <div class="card"><h2>Biggest dues</h2><table id="t-dues"><thead><tr><th>Customer</th><th class="num">Owes</th></tr></thead><tbody></tbody></table></div>
+    </div>
+
+    <div class="card">
+      <h2>Phones</h2>
+      <table id="t-devices"><thead><tr><th>Phone</th><th>Series</th><th>Role</th><th>Last sync</th></tr></thead><tbody></tbody></table>
+    </div>
+    <p class="muted foot">Numbers include only what the shop's phones have synced. Bills made offline appear after the phone reconnects.</p>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

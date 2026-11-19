@@ -63,7 +63,7 @@ public class Projector {
                 long credit = ((List<Map<String, Object>>) p.getOrDefault("payments", List.of())).stream()
                         .filter(x -> "credit".equals(x.get("mode"))).mapToLong(x -> num(x.get("amountPaise"))).sum();
                 var lines = (List<Map<String, Object>>) p.getOrDefault("lines", List.of());
-                var slim = lines.stream().map(l -> Map.of("itemId", l.get("itemId"), "qtyMilli", num(l.get("qtyMilli")),
+                var slim = lines.stream().map(l -> Map.of("itemId", l.get("itemId"), "name", java.util.Objects.toString(l.get("name"), ""), "qtyMilli", num(l.get("qtyMilli")),
                         "totalPaise", num(l.get("totalPaise")), "costPaise", num(l.get("costPaise")))).toList();
                 int inserted = jdbc.sql("""
                         INSERT INTO rm_bill(shop_id, bill_id, day, total_paise, tax_paise, cost_paise, credit_paise, customer_id, lines)
