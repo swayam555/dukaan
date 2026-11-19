@@ -8,3 +8,4 @@ export * from './translit';
 export * from './gst';
 export * from './cart';
 export * from './invoice';
+export * from './escpos';
