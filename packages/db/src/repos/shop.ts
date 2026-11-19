@@ -37,3 +37,21 @@ export async function createShop(db: SqlDriver, input: CreateShopInput): Promise
   });
   return { shop, device };
 }
+
+export type ShopPatch = Partial<Omit<ShopProfile, 'id' | 'stateCode'>>;
+
+/** Owner edits the shop profile. State code is fixed at setup (it decides CGST/SGST vs IGST on every past bill). */
+export async function updateShop(db: SqlExecutor, patch: ShopPatch): Promise<ShopProfile> {
+  const cur = await getShop(db);
+  if (!cur) throw new Error('shop not set up');
+  const next: ShopProfile = { ...cur, ...patch, id: cur.id, stateCode: cur.stateCode };
+  next.name = next.name.trim();
+  next.gstin = next.gstin.trim().toUpperCase();
+  next.upiVpa = next.upiVpa.trim();
+  if (!next.name) throw new Error('shop name required');
+  if (next.gstin && !isValidGstin(next.gstin)) throw new Error('invalid GSTIN');
+  if (next.gstin && next.gstin.slice(0, 2) !== next.stateCode) throw new Error(`GSTIN state ${next.gstin.slice(0, 2)} does not match shop state ${next.stateCode}`);
+  if (next.upiVpa && !/^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z][a-zA-Z0-9.\-]{1,64}$/.test(next.upiVpa)) throw new Error('invalid UPI ID');
+  await setMeta(db, META.shop, next);
+  return next;
+}
