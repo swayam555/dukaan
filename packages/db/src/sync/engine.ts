@@ -2,7 +2,7 @@ import { ClockDriftError, decodeHlc, MAX_DRIFT_MS, type HlcClock } from '@dukaan
 import type { SqlDriver, SqlExecutor } from '../driver';
 import { tablesChanged, type Table } from '../changes';
 import { applyOp } from './apply';
-import { KNOWN_TYPES, OWNER_ONLY, type Op } from './ops';
+import { KNOWN_TYPES, roleViolation, type Op } from './ops';
 import type { SeqOp, SyncTransport } from './transport';
 import { insertOpLog, saveClock } from './writer';
 
@@ -191,7 +191,7 @@ export class SyncEngine {
   /** Returns the touched tables when applied, null when already known (own op / redelivery), or 'quarantined'. */
   private async applyRemote(tx: SqlExecutor, op: Op, seq: number | null): Promise<Table[] | null | 'quarantined'> {
     const reason = !KNOWN_TYPES.has(op.type) ? `unknown type ${op.type}`
-      : op.role !== 'owner' && OWNER_ONLY.has(op.type) && op.deviceId !== 'server' ? `${op.type} needs owner role`
+      : op.deviceId !== 'server' ? roleViolation(op)
       : null;
     if (reason) return this.quarantine(tx, op, reason);
     try {

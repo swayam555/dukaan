@@ -2,7 +2,7 @@ import { HlcClock, uuidv7 } from '@dukaan/core';
 import type { SqlDriver, SqlExecutor } from '../driver';
 import { tablesChanged, type Table } from '../changes';
 import { applyOp } from './apply';
-import { OWNER_ONLY, type Op, type OpBody, type Role } from './ops';
+import { roleViolation, type Op, type OpBody, type Role } from './ops';
 
 export type DeviceContext = { shopId: string; deviceId: string; role: Role };
 
@@ -37,7 +37,8 @@ export class OpWriter {
   constructor(readonly ctx: DeviceContext, readonly clock: HlcClock) {}
 
   stamp(draft: OpDraft): Op {
-    if (OWNER_ONLY.has(draft.type) && this.ctx.role !== 'owner') throw new Error(`${draft.type} needs the owner role`);
+    const denied = roleViolation({ type: draft.type, role: this.ctx.role, payload: draft.payload });
+    if (denied) throw new Error(denied);
     return { ...draft, opId: uuidv7(), shopId: this.ctx.shopId, deviceId: this.ctx.deviceId, hlc: this.clock.now(), role: this.ctx.role } as Op;
   }
 

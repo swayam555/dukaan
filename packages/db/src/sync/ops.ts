@@ -61,6 +61,27 @@ export type Op = OpBody & {
 /** Op types only an owner device may author (also enforced server-side). */
 export const OWNER_ONLY: ReadonlySet<OpType> = new Set(['bill.void', 'stock.adjust', 'purchase.create', 'supplier.upsert', 'item.bulk']);
 
+/** Item fields that move money (price, cost, tax) or remove the item: owner only. A cashier may still fix a name or link a barcode. */
+export const OWNER_ITEM_FIELDS: readonly string[] = ['mrpPaise', 'salePaise', 'costPaise', 'gstBp', 'cessBp', 'priceInclTax', 'deleted'];
+/** Ledger kinds that create or erase a debt without a bill or a payment: owner only. */
+export const OWNER_LEDGER_KINDS: readonly string[] = ['opening', 'adjust'];
+
+/**
+ * The one role rule, used when an op is authored (writer), pulled (engine) and pushed (server, same rule in Java).
+ * Returns why the op is not allowed for its role, or null.
+ */
+export function roleViolation(op: { type: string; role: string; payload: unknown }): string | null {
+  if (op.role === 'owner') return null;
+  if (OWNER_ONLY.has(op.type as OpType)) return `${op.type} needs the owner role`;
+  const p = (op.payload ?? {}) as Record<string, unknown>;
+  if (op.type === 'item.upsert') {
+    const f = OWNER_ITEM_FIELDS.find((k) => k in p);
+    if (f) return `changing item ${f} needs the owner role`;
+  }
+  if (op.type === 'ledger.add' && OWNER_LEDGER_KINDS.includes(String(p.kind))) return `ledger ${String(p.kind)} needs the owner role`;
+  return null;
+}
+
 export const KNOWN_TYPES: ReadonlySet<string> = new Set<OpType>([
   'item.upsert', 'item.bulk', 'customer.upsert', 'supplier.upsert', 'batch.upsert', 'stock.adjust', 'bill.create', 'bill.void', 'bill.number', 'ledger.add', 'purchase.create',
 ]);

@@ -74,6 +74,7 @@ export default function RootLayout() {
             <Stack.Screen name="customer/[id]" options={{ headerShown: true, title: 'Khata' }} />
             <Stack.Screen name="stock" options={{ headerShown: true, title: 'Stock' }} />
             <Stack.Screen name="reports" options={{ headerShown: true, title: 'Reports' }} />
+            <Stack.Screen name="audit" options={{ headerShown: true, title: 'Audit log' }} />
           </Stack.Protected>
         </Stack>
       </SafeAreaProvider>

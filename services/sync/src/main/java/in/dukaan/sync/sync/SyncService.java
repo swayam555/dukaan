@@ -18,7 +18,7 @@ import java.util.*;
  * device engine is fault-tested against:
  *  - op_id is idempotent: a re-push returns the original server_seq;
  *  - one gap-free sequence per shop (shop.next_seq, locked FOR UPDATE for the push transaction);
- *  - owner-only op types from a cashier device are rejected, and the device's real role is stamped;
+ *  - ops a cashier may not author (roleViolation) are rejected, and the device's real role is stamped;
  *  - every new bill.create gets a server-authored bill.number op with a gap-free number per FY.
  */
 @Service
@@ -26,6 +26,21 @@ public class SyncService {
     static final Set<String> OWNER_ONLY = Set.of("bill.void", "stock.adjust", "purchase.create", "supplier.upsert", "item.bulk");
     static final Set<String> KNOWN_TYPES = Set.of("item.upsert", "item.bulk", "customer.upsert", "supplier.upsert", "batch.upsert",
             "stock.adjust", "bill.create", "bill.void", "ledger.add", "purchase.create");
+    /** Mirrors roleViolation() in packages/db/src/sync/ops.ts. */
+    static final List<String> OWNER_ITEM_FIELDS = List.of("mrpPaise", "salePaise", "costPaise", "gstBp", "cessBp", "priceInclTax", "deleted");
+    static final Set<String> OWNER_LEDGER_KINDS = Set.of("opening", "adjust");
+
+    static String roleViolation(String type, boolean owner, Map<String, Object> payload) {
+        if (owner) return null;
+        if (OWNER_ONLY.contains(type)) return type + " needs the owner role";
+        if ("item.upsert".equals(type)) {
+            for (var f : OWNER_ITEM_FIELDS) if (payload.containsKey(f)) return "changing item " + f + " needs the owner role";
+        }
+        if ("ledger.add".equals(type) && OWNER_LEDGER_KINDS.contains(String.valueOf(payload.get("kind")))) {
+            return "ledger " + payload.get("kind") + " needs the owner role";
+        }
+        return null;
+    }
     private static final String INSERT_OP = """
             INSERT INTO ops(shop_id, server_seq, op_id, device_id, entity, entity_id, type, hlc, role, payload)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb)""";
@@ -80,8 +95,7 @@ public class SyncService {
             }
             String reason = !shopId.toString().equalsIgnoreCase(op.shopId()) || !deviceId.equalsIgnoreCase(op.deviceId()) ? "wrong shop or device"
                     : !KNOWN_TYPES.contains(op.type()) ? "unknown op type " + op.type()
-                    : OWNER_ONLY.contains(op.type()) && !device.isOwner() ? op.type() + " needs owner role"
-                    : null;
+                    : roleViolation(op.type(), device.isOwner(), op.payload());
             if (reason != null) { rejects.add(new Reject(op.opId(), reason)); continue; }
 
             long seq = next++;

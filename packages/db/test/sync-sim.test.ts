@@ -75,7 +75,9 @@ async function run(w: Awaited<ReturnType<typeof world>>, c: Cmd) {
   const wall = w.now() + d.skew;
   switch (c.k) {
     case 'edit':
-      await d.writer.write(d.db, [{ type: 'item.upsert', entity: 'item', entityId: c.item, payload: c.rename ? { name: `${c.item} ${c.price}`, salePaise: c.price } : { salePaise: c.price } }]);
+      // A cashier may only rename (prices are owner-only), so its renames still race the owners' edits.
+      await d.writer.write(d.db, [{ type: 'item.upsert', entity: 'item', entityId: c.item,
+        payload: d.role !== 'owner' ? { name: `${c.item} ${c.price}` } : c.rename ? { name: `${c.item} ${c.price}`, salePaise: c.price } : { salePaise: c.price } }]);
       return;
     case 'sell': {
       const l = { ...line(c.item, c.qty * 1000) };
@@ -226,6 +228,6 @@ describe('SyncEngine', () => {
     expect(r.rejected).toBe(1);
     expect(demoted.log).toHaveLength(0);
     expect((await engine.sync()).pushed).toBe(0);
-    expect((await a.db.execute("SELECT reason FROM op_quarantine")).rows[0]).toEqual({ reason: 'rejected: stock.adjust needs owner role' });
+    expect((await a.db.execute("SELECT reason FROM op_quarantine")).rows[0]).toEqual({ reason: 'rejected: stock.adjust needs the owner role' });
   });
 });

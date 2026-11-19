@@ -1,5 +1,5 @@
 import { financialYear, HlcClock, uuidv7 } from '@dukaan/core';
-import { OWNER_ONLY, type Op, type Role } from './ops';
+import { roleViolation, type Op, type Role } from './ops';
 import type { PullResult, PushResult, SeqOp, SyncTransport } from './transport';
 
 /**
@@ -38,8 +38,9 @@ export class MemorySyncServer {
         res.rejects.push({ opId: op.opId, reason: 'wrong shop or device' });
         continue;
       }
-      if (OWNER_ONLY.has(op.type) && device.role !== 'owner') {
-        res.rejects.push({ opId: op.opId, reason: `${op.type} needs owner role` });
+      const denied = roleViolation({ ...op, role: device.role });
+      if (denied) {
+        res.rejects.push({ opId: op.opId, reason: denied });
         continue;
       }
       // The role on the op is what peers check; the server stamps the device's real role.

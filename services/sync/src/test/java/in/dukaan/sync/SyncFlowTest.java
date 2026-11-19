@@ -147,13 +147,17 @@ class SyncFlowTest {
         var res = push(cashier.token(), List.of(
                 op(cashier.id(), "bill.void", "bill", "b1", Map.of("at", 1)),
                 op(cashier.id(), "stock.adjust", "stock", "s1", Map.of("itemId", "salt", "deltaMilli", -1000)),
-                op(cashier.id(), "ledger.add", "ledger", "l1", Map.of("id", "l1", "amountPaise", 500)),
+                op(cashier.id(), "ledger.add", "ledger", "l1", Map.of("id", "l1", "amountPaise", 500, "kind", "credit_sale")),
+                op(cashier.id(), "ledger.add", "ledger", "l2", Map.of("id", "l2", "amountPaise", 50000, "kind", "opening")),
+                op(cashier.id(), "item.upsert", "item", "salt", Map.of("salePaise", 1)),
+                op(cashier.id(), "item.upsert", "item", "salt", Map.of("barcode", "8901058000017")), // fixing a barcode is fine
                 op(ownerId, "item.upsert", "item", "x", Map.of()),       // impersonating another device
                 op(cashier.id(), "bill.number", "bill", "b1", Map.of("globalNo", 1)))); // server-only
         assertThat((List<Map<String, Object>>) res.get("rejects")).extracting(r -> r.get("reason"))
-                .containsExactly("bill.void needs owner role", "stock.adjust needs owner role", "wrong shop or device", "unknown op type bill.number");
+                .containsExactly("bill.void needs the owner role", "stock.adjust needs the owner role", "ledger opening needs the owner role",
+                        "changing item salePaise needs the owner role", "wrong shop or device", "unknown op type bill.number");
         var stored = pullAll(owner, 1000);
-        assertThat(stored).hasSize(1);
+        assertThat(stored).hasSize(2);
         assertThat(stored.getFirst()).containsEntry("type", "ledger.add").containsEntry("role", "cashier");
     }
 
