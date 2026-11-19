@@ -103,3 +103,7 @@ docs/               ARCHITECTURE, PLAN, CHANGELOG, perf/, store/, INTERVIEW_NOTE
 - **Cloud-data deletion is by request**, not an in-app button yet (see `docs/store/permissions.md`).
 
 Store and compliance drafts are in `docs/store/`: listing, DPDP privacy policy, permission rationale and data-safety answers.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
