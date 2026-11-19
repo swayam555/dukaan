@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import * as Print from 'expo-print';
@@ -7,6 +7,7 @@ import { formatRupees, renderInvoiceHtml, type Unit } from '@dukaan/core';
 import { getBill, getShop } from '@dukaan/db';
 import { space } from '@/constants/theme';
 import { getDb } from '@/lib/db';
+import { getPrinterSettings, onPrintQueueChange, printBill } from '@/lib/printer';
 import { Button, Card, Screen, Text } from '@/ui/primitives';
 
 type Loaded = NonNullable<Awaited<ReturnType<typeof getBill>>>;
@@ -36,10 +37,37 @@ export default function BillDone() {
   const { id, change } = useLocalSearchParams<{ id: string; change?: string }>();
   const [data, setData] = useState<Loaded | null>(null);
   const [sharing, setSharing] = useState(false);
+  const [printer, setPrinter] = useState<{ name: string } | null>(null);
+  const [printStatus, setPrintStatus] = useState<string | null>(null);
+  const autoPrinted = useRef(false);
+
+  const refreshPrint = useCallback(async () => {
+    const db = await getDb();
+    const job = (await db.execute<{ status: string; attempts: number; last_error: string }>(
+      'SELECT status, attempts, last_error FROM print_job WHERE ref_id = ? ORDER BY created_at DESC LIMIT 1', [id])).rows[0];
+    if (!job) return setPrintStatus(null);
+    setPrintStatus(
+      job.status === 'done' ? 'Receipt printed'
+        : job.status === 'printing' ? 'Printing…'
+          : job.status === 'failed' ? `Print failed: ${job.last_error}`
+            : job.attempts > 0 ? `Printer not reachable — retrying (${job.last_error})` : 'Queued for printing',
+    );
+  }, [id]);
 
   useEffect(() => {
     void (async () => setData(await getBill(await getDb(), id)))();
-  }, [id]);
+    void (async () => {
+      const s = await getPrinterSettings();
+      if (!s?.address) return;
+      setPrinter({ name: s.name });
+      if (s.autoPrint && !autoPrinted.current) {
+        autoPrinted.current = true;
+        await printBill(id);
+      }
+      await refreshPrint();
+    })();
+    return onPrintQueueChange(() => void refreshPrint());
+  }, [id, refreshPrint]);
 
   const share = async () => {
     if (!data) return;
@@ -67,6 +95,8 @@ export default function BillDone() {
         ) : null}
       </View>
       <View style={{ gap: space.sm }}>
+        {printStatus ? <Text variant="caption" tone="ink2" style={{ textAlign: 'center' }} testID="bill-print-status">{printStatus}</Text> : null}
+        {printer ? <Button kind="secondary" title={`Print receipt (${printer.name})`} onPress={() => void printBill(id).then(refreshPrint)} testID="bill-print" /> : null}
         <Button kind="secondary" title="Share invoice PDF (WhatsApp…)" onPress={share} loading={sharing} disabled={!data} testID="bill-share" />
         <Button title="New bill" onPress={() => router.replace('/billing')} testID="bill-new" />
       </View>

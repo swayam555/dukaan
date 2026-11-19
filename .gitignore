@@ -4,8 +4,8 @@ dist/
 build/
 *.log
 .env
-android/
-ios/
+apps/mobile/android/
+apps/mobile/ios/
 target/
 .gradle/
 *.db

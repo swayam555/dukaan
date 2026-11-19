@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { FlashList } from '@shopify/flash-list';
 import { router } from 'expo-router';
+import { getHidScanner } from '@dukaan/native';
 import { cartProblems, computeBill, formatQuantity, formatRupees, type CartLine } from '@dukaan/core';
 import { findByBarcode, holdBill, listHeldBills, resumeHeldBill } from '@dukaan/db';
 import { radius, space, type as typeScale } from '@/constants/theme';
@@ -84,6 +85,24 @@ export default function BillingScreen() {
     if (parked) cart.load({ lines: parked.lines as CartLine[], billDiscount: parked.billDiscount, customerId: parked.customerId });
   }, [cart, hold]);
 
+  /** Hardware (HID) scanner: bursts of keys + Enter, caught natively before they reach any text field. */
+  const [scanMsg, setScanMsg] = useState<string | null>(null);
+  const addRef = useRef(cart.add);
+  useEffect(() => { addRef.current = cart.add; }, [cart.add]);
+  useEffect(() => {
+    const hid = getHidScanner();
+    hid.start((code) => {
+      void (async () => {
+        const item = await findByBarcode(await getDb(), code);
+        if (item) {
+          addRef.current(item);
+          setScanMsg(null);
+        } else setScanMsg(`No item with barcode ${code}`);
+      })();
+    }, 50, 6);
+    return () => hid.stop();
+  }, []);
+
   const showingResults = query.trim().length > 0;
 
   return (
@@ -144,6 +163,7 @@ export default function BillingScreen() {
           <Text tone="ink2">{t('billing.total')} · {cart.lines.length} items{totals.discount ? ` · −${formatRupees(totals.discount)}` : ''}</Text>
           <Text variant="display" testID="bill-total">{formatRupees(totals.total)}</Text>
         </View>
+        {scanMsg ? <Text variant="caption" tone="brick" testID="billing-scan-msg">{scanMsg}</Text> : null}
         {problems.length ? <Text variant="caption" tone="brick">{problems[0]}</Text> : null}
         <View style={{ flexDirection: 'row', gap: space.sm }}>
           <Button kind="secondary" title={t('billing.hold')} onPress={hold} disabled={cart.lines.length === 0} style={{ flex: 1 }} testID="billing-hold" />

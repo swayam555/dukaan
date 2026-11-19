@@ -3,7 +3,11 @@ import { Text, type ColorValue } from 'react-native';
 import { useT } from '@/i18n';
 import { useColors } from '@/ui/theme';
 
-const icon = (glyph: string) => ({ color }: { color: ColorValue }) => <Text style={{ color, fontSize: 18 }}>{glyph}</Text>;
+const icon = (glyph: string) => {
+  const TabIcon = ({ color }: { color: ColorValue }) => <Text style={{ color, fontSize: 18 }}>{glyph}</Text>;
+  TabIcon.displayName = `TabIcon(${glyph})`;
+  return TabIcon;
+};
 
 export default function MainTabs() {
   const t = useT();

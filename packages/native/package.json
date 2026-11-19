@@ -1,0 +1,22 @@
+{
+  "name": "@dukaan/native",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nitro modules: Bluetooth ESC/POS printer and HID barcode-scanner capture",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "react-native": "src/index.ts",
+  "source": "src/index.ts",
+  "scripts": {
+    "specs": "nitrogen --logLevel=info",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react-native": "*",
+    "react-native-nitro-modules": "*"
+  },
+  "devDependencies": {
+    "nitrogen": "0.37.2",
+    "react-native-nitro-modules": "^0.37.2"
+  }
+}

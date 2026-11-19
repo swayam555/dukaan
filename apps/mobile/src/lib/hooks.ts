@@ -31,22 +31,22 @@ export type SearchState = { hits: SearchHit[]; ms: number | null; searching: boo
  * older generation are dropped, so a slow query for "b" can never overwrite the results for "bas".
  */
 export function useItemSearch(query: string, debounceMs = 80, limit = 30): SearchState {
-  const [state, setState] = useState<SearchState>({ hits: [], ms: null, searching: false });
+  // Results remember the query they answer; "searching" is derived (no setState inside the effect body).
+  const [done, setDone] = useState<{ query: string; hits: SearchHit[]; ms: number | null }>({ query: '', hits: [], ms: null });
   const generation = useRef(0);
+  const blank = !query.trim();
   useEffect(() => {
     const gen = ++generation.current;
-    if (!query.trim()) {
-      setState({ hits: [], ms: null, searching: false });
-      return;
-    }
-    setState((s) => ({ ...s, searching: true }));
+    if (blank) return;
     const timer = setTimeout(async () => {
       const db = await getDb();
       const started = performance.now();
       const hits = await searchItems(db, query, limit);
-      if (gen === generation.current) setState({ hits, ms: performance.now() - started, searching: false });
+      if (gen === generation.current) setDone({ query, hits, ms: performance.now() - started });
     }, debounceMs);
     return () => clearTimeout(timer);
-  }, [query, debounceMs, limit]);
-  return state;
+  }, [query, blank, debounceMs, limit]);
+  if (blank) return { hits: [], ms: null, searching: false };
+  // While a new query is pending, keep showing the previous hits (no flash of empty list).
+  return { hits: done.hits, ms: done.ms, searching: done.query !== query };
 }

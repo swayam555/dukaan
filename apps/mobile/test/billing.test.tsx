@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act } from 'react';
 import { router } from 'expo-router';
 import BillingScreen from '@/app/(main)/billing';
 import { useCart } from '@/state/cart';
@@ -31,7 +32,7 @@ test('picking a loose item opens the weight editor and blocks checkout until wei
   expect(screen.getByTestId('billing-charge')).toBeDisabled();
 });
 
-test('HID scanner path: digits + Enter adds by barcode', async () => {
+test('keyboard-wedge fallback: barcode typed into search + Enter adds the item', async () => {
   await render(<BillingScreen />);
   const input = screen.getByTestId('billing-search');
   await fireEvent.changeText(input, '8901058000017');
@@ -47,4 +48,18 @@ test('hold parks the bill; tapping the chip resumes it', async () => {
   const chip = await screen.findByText(/1 items · ₹45.00/);
   await fireEvent.press(chip);
   await waitFor(() => expect(useCart.getState().lines.map((l) => l.itemId)).toEqual(['soap']));
+});
+
+test('native HID scanner: a captured burst adds by barcode; unknown codes are reported; stops on unmount', async () => {
+  const { __hid: hid } = jest.requireMock('@dukaan/native');
+  const view = await render(<BillingScreen />);
+  expect(hid.isActive).toBe(true);
+  await act(async () => hid.onScan('8901058000017', 38));
+  await waitFor(() => expect(screen.getByTestId('bill-total')).toHaveTextContent('₹28.00'));
+  await act(async () => hid.onScan('8901058000017', 41));
+  await waitFor(() => expect(screen.getByTestId('bill-total')).toHaveTextContent('₹56.00'));
+  await act(async () => hid.onScan('0000000000000', 40));
+  expect(await screen.findByTestId('billing-scan-msg')).toHaveTextContent('No item with barcode 0000000000000');
+  await view.unmount();
+  expect(hid.isActive).toBe(false);
 });

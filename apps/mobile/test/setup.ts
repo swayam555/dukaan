@@ -27,3 +27,17 @@ jest.mock('expo-router', () => ({
   useLocalSearchParams: jest.fn(() => ({})),
   Stack: { Screen: () => null },
 }));
+
+/** Native printer + HID scanner: tests drive the scanner callback directly and record printer writes.
+ *  (No type annotations inside the factory: babel-plugin-jest-hoist reads type-param names as variable refs.) */
+jest.mock('@dukaan/native', () => {
+  const hid: any = { onScan: null, isActive: false };
+  hid.start = (cb: any) => { hid.onScan = cb; hid.isActive = true; };
+  hid.stop = () => { hid.onScan = null; hid.isActive = false; };
+  const printer: any = { isEnabled: true, connectedAddress: undefined, writes: [] };
+  printer.listPaired = jest.fn(async () => [{ address: 'AA:BB', name: 'MTP-II' }]);
+  printer.connect = jest.fn(async (a: any) => { printer.connectedAddress = a; });
+  printer.write = jest.fn(async (buf: any) => { printer.writes.push(new Uint8Array(buf)); });
+  printer.disconnect = jest.fn(() => { printer.connectedAddress = undefined; });
+  return { getHidScanner: () => hid, getPrinter: () => printer, __hid: hid, __printer: printer };
+}, { virtual: true });

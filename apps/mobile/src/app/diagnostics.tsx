@@ -15,7 +15,11 @@ export default function DiagnosticsScreen() {
   const [bench, setBench] = useState<BenchResult | null>(null);
 
   const refresh = useCallback(async () => setStats(await dbStats()), []);
-  useEffect(() => void refresh(), [refresh]);
+  useEffect(() => {
+    let live = true;
+    void dbStats().then((s) => live && setStats(s));
+    return () => { live = false; };
+  }, []);
 
   const seed = async () => {
     setBusy('Seeding 0');

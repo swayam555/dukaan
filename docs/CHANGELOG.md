@@ -26,3 +26,16 @@
 - Payment screen: cash/UPI/card/khata split, change calculator, UPI QR (`upi://pay`), new-customer khata.
 - A4 tax invoice / bill of supply HTML → PDF share; owner-editable shop profile; seeder CLI (SQLite and/or CSV).
 - Tests: core 58, db 30, app component tests 7 (RNTL 14 + jest-expo against real SQLite via better-sqlite3).
+
+## Phase 4 — Hardware (2026-11-19, device verification pending)
+- `@dukaan/native` Nitro module (nitrogen 0.37): Bluetooth ESC/POS printer (Android SPP with insecure-socket
+  fallback, chunked writes 512 B / 20 ms on one IO thread; iOS BLE) and an Android HID scanner that catches
+  keyboard-wedge bursts in `dispatchKeyEvent` and replays non-scan typing untouched.
+- ESC/POS encoder in core (text, alignment, bold/double, QR, cut, `GS v 0` raster); 58/80 mm widths.
+- Hindi/Devanagari receipt lines drawn with Skia SkParagraph off-screen and thresholded to 1-bit raster.
+- Durable print queue (migration 0002): claim → print → finish/fail with exponential backoff, retry, crash
+  reclaim; receipts rebuilt from the stored bill (khata dues add a UPI QR, void bills are marked).
+- Printer screen (paired devices, paper size, auto-print, test print with timing, queue with retry);
+  bill screen auto-prints once and shows print status.
+- ESLint (eslint-config-expo flat) added; fixed 5 findings (setState in effect bodies, ref write in render,
+  missing display name). Tests: core 66, db 36, app 8.
