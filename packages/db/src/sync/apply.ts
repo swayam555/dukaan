@@ -1,6 +1,6 @@
 import { buildSearchKeys, decodeHlc, nameSortKey } from '@dukaan/core';
 import type { SqlExecutor, SqlValue } from '../driver';
-import { bumpItemRank } from '../repos/items';
+import { bumpItemRank, INSERT_ITEM_BASE, itemInputFields, itemParams } from '../repos/items';
 import { applyStockDeltas } from '../repos/stock';
 import type { Table } from '../changes';
 import type { BillPayload, Op } from './ops';
@@ -34,25 +34,61 @@ function toSql(v: unknown): SqlValue {
 }
 
 /** Applies the fields of an upsert op that win their per-field LWW comparison. Returns the winning fields. */
-async function applyLww(tx: SqlExecutor, entity: string, table: string, columns: Record<string, string>, op: Op, payload: Record<string, unknown>): Promise<string[]> {
+async function applyLww(tx: SqlExecutor, entity: string, table: string, columns: Record<string, string>, op: Op, payload: Record<string, unknown>, entityId = op.entityId): Promise<string[]> {
   const fields = Object.keys(payload).filter((f) => f in columns);
   if (fields.length === 0) return [];
+  // Items imported in bulk carry one row clock; a field without its own clock is as old as that.
+  let base: { hlc: string; owner: boolean } | undefined;
+  if (table === 'item') {
+    const { rows: b } = await tx.execute<{ base_hlc: string; base_owner: number }>('SELECT base_hlc, base_owner FROM item WHERE id = ?', [entityId]);
+    if (b[0]?.base_hlc) base = { hlc: b[0].base_hlc, owner: b[0].base_owner === 1 };
+  }
   const { rows } = await tx.execute<{ field: string; hlc: string; owner: number }>(
     `SELECT field, hlc, owner FROM field_clock WHERE entity = ? AND entity_id = ? AND field IN (${fields.map(() => '?').join(',')})`,
-    [entity, op.entityId, ...fields],
+    [entity, entityId, ...fields],
   );
   const clocks = new Map(rows.map((r) => [r.field, { hlc: r.hlc, owner: r.owner === 1 }]));
   const owner = op.role === 'owner';
-  const winners = fields.filter((f) => lwwWins({ hlc: op.hlc, owner }, clocks.get(f)));
-  if (winners.length === 0) return [];
+  const winners = fields.filter((f) => lwwWins({ hlc: op.hlc, owner }, clocks.get(f) ?? base));
+  // updated_hlc = newest op ever applied to the row, winning or not: a max over the op set, so arrival order
+  // can't change it (the owner tie-break means "won when it arrived" would depend on order).
+  if (winners.length === 0) {
+    await tx.execute(`UPDATE ${table} SET updated_hlc = max(updated_hlc, ?) WHERE id = ?`, [op.hlc, entityId]);
+    return [];
+  }
   await tx.execute(`UPDATE ${table} SET ${winners.map((f) => `${columns[f]} = ?`).join(', ')}, updated_hlc = max(updated_hlc, ?) WHERE id = ?`, [
-    ...winners.map((f) => toSql(payload[f])), op.hlc, op.entityId,
+    ...winners.map((f) => toSql(payload[f])), op.hlc, entityId,
   ]);
   await tx.executeMany(
     'INSERT INTO field_clock(entity, entity_id, field, hlc, owner) VALUES (?, ?, ?, ?, ?) ON CONFLICT(entity, entity_id, field) DO UPDATE SET hlc = excluded.hlc, owner = excluded.owner',
-    winners.map((f) => [entity, op.entityId, f, op.hlc, owner ? 1 : 0]),
+    winners.map((f) => [entity, entityId, f, op.hlc, owner ? 1 : 0]),
   );
   return winners;
+}
+
+async function refreshItemKeys(tx: SqlExecutor, id: string): Promise<void> {
+  const { rows } = await tx.execute<{ name: string; name_hi: string }>('SELECT name, name_hi FROM item WHERE id = ?', [id]);
+  const r = rows[0]!;
+  await tx.execute('UPDATE item SET translit = ?, name_key = ? WHERE id = ?', [buildSearchKeys(r.name, r.name_hi), nameSortKey(r.name), id]);
+}
+
+async function applyItemBulk(tx: SqlExecutor, op: Op & { type: 'item.bulk' }): Promise<void> {
+  const { items, stock } = op.payload;
+  const existing = new Set<string>();
+  for (let i = 0; i < items.length; i += 500) {
+    const ids = items.slice(i, i + 500).map((it) => it.id);
+    const { rows } = await tx.execute<{ id: string }>(`SELECT id FROM item WHERE id IN (${ids.map(() => '?').join(',')})`, ids);
+    for (const r of rows) existing.add(r.id);
+  }
+  const fresh = items.filter((it) => !existing.has(it.id));
+  const owner = op.role === 'owner' ? 1 : 0;
+  await tx.executeMany(INSERT_ITEM_BASE, fresh.map((it) => [...itemParams(it, op.hlc), op.hlc, owner]));
+  for (const it of items) {
+    if (!existing.has(it.id)) continue;
+    const winners = await applyLww(tx, 'item', 'item', ITEM_COLUMNS, op, itemInputFields(it), it.id);
+    if (winners.includes('name') || winners.includes('nameHi')) await refreshItemKeys(tx, it.id);
+  }
+  await applyStockDeltas(tx, stock.filter((s) => s.deltaMilli !== 0).map((s) => ({ itemId: s.itemId, deviceId: op.deviceId, deltaMilli: s.deltaMilli })));
 }
 
 async function applyBillEffects(tx: SqlExecutor, op: Op, bill: BillPayload): Promise<void> {
@@ -80,13 +116,22 @@ async function applyBillEffects(tx: SqlExecutor, op: Op, bill: BillPayload): Pro
 }
 
 async function voidBill(tx: SqlExecutor, op: Op, billId: string, at: number): Promise<void> {
-  const { rows } = await tx.execute<{ status: string; device_id: string; customer_id: string | null; local_no: string }>(
-    'SELECT status, device_id, customer_id, local_no FROM bill WHERE id = ?', [billId]);
+  const { rows } = await tx.execute<{ status: string; status_hlc: string; device_id: string; customer_id: string | null; local_no: string }>(
+    'SELECT status, status_hlc, device_id, customer_id, local_no FROM bill WHERE id = ?', [billId]);
   const bill = rows[0];
-  if (!bill || bill.status === 'void') return; // not here yet (applied when bill.create arrives) or already void
+  if (!bill) return; // not here yet: applied when bill.create arrives (from bill_amendment)
+  if (bill.status === 'void') {
+    // Two devices voided the same bill: effects happen once; the recorded void is the earliest, whatever the arrival order.
+    if (op.hlc < bill.status_hlc) {
+      await tx.execute('UPDATE bill SET status_hlc = ? WHERE id = ?', [op.hlc, billId]);
+      await tx.execute('UPDATE ledger_entry SET hlc = ?, created_at = ? WHERE id = ?', [op.hlc, at, `${billId}:void`]);
+    }
+    return;
+  }
   await tx.execute("UPDATE bill SET status = 'void', status_hlc = ? WHERE id = ?", [op.hlc, billId]);
   const { rows: lines } = await tx.execute<{ item_id: string; batch_id: string; qty_milli: number }>('SELECT item_id, batch_id, qty_milli FROM bill_line WHERE bill_id = ?', [billId]);
-  await applyStockDeltas(tx, lines.map((l) => ({ itemId: l.item_id, batchId: l.batch_id, deviceId: op.deviceId, deltaMilli: l.qty_milli })));
+  // Restock into the selling device's cell, so the cell is the same whichever device's void applied first.
+  await applyStockDeltas(tx, lines.map((l) => ({ itemId: l.item_id, batchId: l.batch_id, deviceId: bill.device_id, deltaMilli: l.qty_milli })));
   if (bill.customer_id) {
     const { rows: credit } = await tx.execute<{ amount_paise: number }>("SELECT amount_paise FROM ledger_entry WHERE id = ?", [`${billId}:credit`]);
     if (credit[0]) {
@@ -108,13 +153,12 @@ export async function applyOp(tx: SqlExecutor, op: Op): Promise<Table[]> {
     case 'item.upsert': {
       await tx.execute("INSERT OR IGNORE INTO item(id, name, deleted) VALUES (?, '', 0)", [op.entityId]);
       const winners = await applyLww(tx, 'item', 'item', ITEM_COLUMNS, op, op.payload);
-      if (winners.includes('name') || winners.includes('nameHi')) {
-        const { rows } = await tx.execute<{ name: string; name_hi: string }>('SELECT name, name_hi FROM item WHERE id = ?', [op.entityId]);
-        const r = rows[0]!;
-        await tx.execute('UPDATE item SET translit = ?, name_key = ? WHERE id = ?', [buildSearchKeys(r.name, r.name_hi), nameSortKey(r.name), op.entityId]);
-      }
+      if (winners.includes('name') || winners.includes('nameHi')) await refreshItemKeys(tx, op.entityId);
       return ['item'];
     }
+    case 'item.bulk':
+      await applyItemBulk(tx, op);
+      return ['item', 'stock'];
     case 'customer.upsert':
       await tx.execute("INSERT OR IGNORE INTO customer(id, name) VALUES (?, '')", [op.entityId]);
       await applyLww(tx, 'customer', 'customer', CUSTOMER_COLUMNS, op, op.payload);
@@ -153,6 +197,9 @@ export async function applyOp(tx: SqlExecutor, op: Op): Promise<Table[]> {
       );
       if (res.rowsAffected === 0) return [];
       await applyBillEffects(tx, op, b);
+      // The server's bill.number op can arrive first (it sorts by HLC within a page, or the create was held back).
+      const { rows: numbered } = await tx.execute<{ payload: string }>("SELECT payload FROM op_log WHERE entity_id = ? AND type = 'bill.number' LIMIT 1", [b.id]);
+      if (numbered[0]) await tx.execute('UPDATE bill SET global_no = ? WHERE id = ?', [(JSON.parse(numbered[0].payload) as { globalNo: number }).globalNo, b.id]);
       const { rows: pendingVoid } = await tx.execute<{ id: string; hlc: string; device_id: string; payload: string }>(
         "SELECT id, hlc, device_id, payload FROM bill_amendment WHERE bill_id = ? AND kind = 'void' ORDER BY hlc LIMIT 1", [b.id]);
       if (pendingVoid[0]) {

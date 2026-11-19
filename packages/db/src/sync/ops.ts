@@ -1,4 +1,5 @@
 import type { Discount } from '@dukaan/core';
+import type { ItemInput } from '../repos/items';
 
 export type Role = 'owner' | 'cashier';
 
@@ -34,6 +35,8 @@ export type PurchasePayload = {
 
 export type OpBody =
   | { type: 'item.upsert'; entity: 'item'; payload: ItemFields }
+  /** CSV import batch: whole rows under one clock (item.base_hlc) plus opening stock. entityId = batch id. */
+  | { type: 'item.bulk'; entity: 'item'; payload: { items: ItemInput[]; stock: { itemId: string; deltaMilli: number }[] } }
   | { type: 'customer.upsert'; entity: 'customer'; payload: CustomerFields }
   | { type: 'supplier.upsert'; entity: 'supplier'; payload: SupplierFields }
   | { type: 'batch.upsert'; entity: 'batch'; payload: { itemId: string; batchNo: string; expiry: string | null; mrpPaise: number; costPaise: number } }
@@ -56,8 +59,8 @@ export type Op = OpBody & {
 };
 
 /** Op types only an owner device may author (also enforced server-side). */
-export const OWNER_ONLY: ReadonlySet<OpType> = new Set(['bill.void', 'stock.adjust', 'purchase.create', 'supplier.upsert']);
+export const OWNER_ONLY: ReadonlySet<OpType> = new Set(['bill.void', 'stock.adjust', 'purchase.create', 'supplier.upsert', 'item.bulk']);
 
 export const KNOWN_TYPES: ReadonlySet<string> = new Set<OpType>([
-  'item.upsert', 'customer.upsert', 'supplier.upsert', 'batch.upsert', 'stock.adjust', 'bill.create', 'bill.void', 'bill.number', 'ledger.add', 'purchase.create',
+  'item.upsert', 'item.bulk', 'customer.upsert', 'supplier.upsert', 'batch.upsert', 'stock.adjust', 'bill.create', 'bill.void', 'bill.number', 'ledger.add', 'purchase.create',
 ]);

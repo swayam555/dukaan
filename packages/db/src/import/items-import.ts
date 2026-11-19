@@ -1,7 +1,7 @@
 import { parseRupees, UNITS, uuidv7, type Unit } from '@dukaan/core';
 import type { SqlDriver, SqlExecutor } from '../driver';
-import { upsertItems, type ItemInput } from '../repos/items';
-import { applyStockDeltas } from '../repos/stock';
+import type { ItemInput } from '../repos/items';
+import type { OpWriter } from '../sync/writer';
 import { tablesChanged } from '../changes';
 import { bomLength, CsvParser, detectDelimiter } from './csv';
 
@@ -92,7 +92,8 @@ export type ImportOptions = {
   jobId: string;
   source: ByteSource;
   sourceName: string;
-  deviceId: string;
+  /** Each committed batch becomes one item.bulk op, so the catalogue syncs like any other edit. */
+  writer: OpWriter;
   chunkBytes?: number;
   batchRows?: number;
   onProgress?: (p: ImportProgress) => void;
@@ -159,12 +160,16 @@ export async function importItemsCsv(db: SqlDriver, opts: ImportOptions): Promis
     pending = [];
     await db.transaction(async (tx) => {
       const resolved = await resolveExisting(tx, batch.map((b) => b.item));
-      await upsertItems(tx, resolved);
-      await applyStockDeltas(tx, batch.map((b, i) => ({ itemId: resolved[i]!.id, deviceId: opts.deviceId, deltaMilli: b.stockMilli })));
+      if (resolved.length > 0) {
+        await opts.writer.writeIn(tx, [{
+          type: 'item.bulk', entity: 'item', entityId: uuidv7(),
+          payload: { items: resolved, stock: batch.map((b, i) => ({ itemId: resolved[i]!.id, deltaMilli: b.stockMilli })).filter((s) => s.deltaMilli !== 0) },
+        }]);
+      }
       await tx.execute('UPDATE import_job SET byte_offset = ?, rows_done = ?, rows_failed = ?, updated_at = ? WHERE id = ?', [lastBoundary, rowsDone, rowsFailed, Date.now(), opts.jobId]);
     });
     offset = lastBoundary;
-    tablesChanged('item', 'stock');
+    tablesChanged('item', 'stock', 'sync');
     opts.onProgress?.({ bytesDone: offset, totalBytes: opts.source.size, rowsDone, rowsFailed });
     await opts.yieldEvery?.();
   };

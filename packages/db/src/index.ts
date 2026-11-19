@@ -15,3 +15,6 @@ export * from './sync/writer';
 export * from './repos/bills';
 export * from './repos/customers';
 export * from './repos/print';
+export * from './sync/transport';
+export * from './sync/engine';
+export * from './sync/memory-server';

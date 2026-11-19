@@ -40,8 +40,13 @@ export type ItemRow = {
 export const ITEM_COLUMNS = `i.id, i.name, i.name_hi, i.barcode, i.hsn, i.category, i.unit, i.mrp_paise, i.sale_paise, i.cost_paise,
   i.gst_bp, i.cess_bp, i.price_incl_tax, i.track_batches, i.low_stock_milli, coalesce(st.qty_milli, 0) AS qty_milli`;
 
-const INSERT_ITEM = `INSERT INTO item(id, name, name_hi, translit, name_key, barcode, hsn, category, unit, mrp_paise, sale_paise,
-  cost_paise, gst_bp, cess_bp, track_batches, low_stock_milli, updated_hlc)
+const ITEM_INSERT_HEAD = `INSERT INTO item(id, name, name_hi, translit, name_key, barcode, hsn, category, unit, mrp_paise, sale_paise,
+  cost_paise, gst_bp, cess_bp, track_batches, low_stock_milli, updated_hlc`;
+
+/** New rows from an item.bulk op: whole row under one clock (base_hlc), no per-field clocks. */
+export const INSERT_ITEM_BASE = `${ITEM_INSERT_HEAD}, base_hlc, base_owner) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+const INSERT_ITEM = `${ITEM_INSERT_HEAD})
   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   ON CONFLICT(id) DO UPDATE SET name = excluded.name, name_hi = excluded.name_hi, translit = excluded.translit,
     name_key = excluded.name_key, barcode = excluded.barcode, hsn = excluded.hsn, category = excluded.category, unit = excluded.unit,
@@ -58,7 +63,16 @@ export function itemParams(item: ItemInput, hlc = ''): SqlValue[] {
   ];
 }
 
-/** Bulk upsert (used by CSV import, seeding and snapshot load). Search keys are derived here, once. */
+/** The full field set an ItemInput stands for (defaults filled), in item.upsert field names. */
+export function itemInputFields(i: ItemInput) {
+  return {
+    name: i.name.trim(), nameHi: i.nameHi ?? '', barcode: i.barcode || null, hsn: i.hsn ?? '', category: i.category ?? '', unit: i.unit ?? 'pcs',
+    mrpPaise: i.mrpPaise ?? i.salePaise, salePaise: i.salePaise, costPaise: i.costPaise ?? 0, gstBp: i.gstBp ?? 0, cessBp: i.cessBp ?? 0,
+    trackBatches: !!i.trackBatches, lowStockMilli: i.lowStockMilli ?? 0, deleted: false,
+  };
+}
+
+/** Bulk upsert without ops (seeding, tests, snapshot load). Search keys are derived here, once. */
 export async function upsertItems(tx: SqlExecutor, items: readonly ItemInput[], hlc = ''): Promise<void> {
   await tx.executeMany(INSERT_ITEM, items.map((i) => itemParams(i, hlc)));
 }
