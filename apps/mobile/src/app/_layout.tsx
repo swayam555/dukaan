@@ -7,11 +7,13 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { boot } from '@/lib/boot';
+import { initMonitoring } from '@/lib/monitoring';
 import { startSync, stopSync } from '@/lib/sync';
 import { useSession } from '@/state/session';
 import { Text } from '@/ui/primitives';
 import { useColors } from '@/ui/theme';
 
+initMonitoring();
 void SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {

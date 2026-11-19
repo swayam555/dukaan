@@ -60,3 +60,19 @@ management:
   metrics:
     tags:
       application: dukaan-sync
+  # Traces: every request and JDBC/Kafka/Redis call becomes a span; trace ids go into the logs either way.
+  # Export is opt-in: TRACES_EXPORT=true + TRACES_ENDPOINT (an OTLP/HTTP collector, e.g. Jaeger or Tempo).
+  tracing:
+    sampling:
+      probability: ${TRACE_SAMPLE:0.1}
+    export:
+      enabled: ${TRACES_EXPORT:false}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+  logging:
+    export:
+      otlp:
+        enabled: false

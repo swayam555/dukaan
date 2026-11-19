@@ -8,6 +8,7 @@
     "@dukaan/native": "workspace:*",
     "@dukaan/seeder": "workspace:*",
     "@op-engineering/op-sqlite": "^19.0.5",
+    "@sentry/react-native": "~8.28.1",
     "@shopify/flash-list": "2.3.2",
     "@shopify/react-native-skia": "2.14.0",
     "expo": "~58.0.26",

@@ -8,3 +8,4 @@ allowBuilds:
   '@swc/core': true
   '@parcel/watcher': false
   esbuild: true
+  '@sentry/cli': false # only uploads source maps from CI; not needed for local builds

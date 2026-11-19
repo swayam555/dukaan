@@ -1,4 +1,5 @@
 import { getDevice, getLock, getMeta, getShop, META } from '@dukaan/db';
+import { reportError } from './monitoring';
 import { detectLocale } from '@/i18n';
 import type { Locale } from '@/i18n/strings';
 import { useSession } from '@/state/session';
@@ -21,6 +22,7 @@ export async function boot(): Promise<void> {
       locale: locale ?? detectLocale(),
     });
   } catch (err) {
+    reportError(err, 'boot');
     set({ status: 'error', error: err instanceof Error ? err.message : String(err) });
   }
 }
