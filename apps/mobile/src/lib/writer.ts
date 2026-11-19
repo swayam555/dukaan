@@ -14,3 +14,8 @@ export function getWriter(): Promise<OpWriter> {
   })();
   return writer;
 }
+
+/** Drop the cached writer (tests; a different shop/device identity on this process). */
+export function resetWriter(): void {
+  writer = null;
+}

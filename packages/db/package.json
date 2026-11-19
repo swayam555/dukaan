@@ -8,7 +8,8 @@
     "gen": "node scripts/gen-migrations.mjs",
     "test": "node scripts/gen-migrations.mjs --check && jest",
     "typecheck": "tsc -p .",
-    "bench:search": "tsx bench/search.ts"
+    "bench:search": "tsx bench/search.ts",
+    "e2e:sync": "tsx scripts/e2e-sync.ts"
   },
   "dependencies": {
     "@dukaan/core": "workspace:*"

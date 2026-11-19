@@ -5,6 +5,7 @@ import { space } from '@/constants/theme';
 import { getDb } from '@/lib/db';
 import { useSession } from '@/state/session';
 import { Button, Card, Field, Screen, Text } from '@/ui/primitives';
+import { SyncCard } from '@/ui/SyncCard';
 
 export default function SettingsScreen() {
   const role = useSession((s) => s.device?.role);
@@ -48,6 +49,7 @@ export default function SettingsScreen() {
           {saved ? <Text tone="leaf" testID="settings-saved">Saved</Text> : null}
           {owner ? <Button title="Save" onPress={save} testID="settings-save" /> : <Text tone="ink3">Only the owner can change these.</Text>}
         </Card>
+        <SyncCard />
       </ScrollView>
     </Screen>
   );

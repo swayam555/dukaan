@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { boot } from '@/lib/boot';
+import { startSync, stopSync } from '@/lib/sync';
 import { useSession } from '@/state/session';
 import { Text } from '@/ui/primitives';
 import { useColors } from '@/ui/theme';
@@ -21,6 +22,13 @@ export default function RootLayout() {
   useEffect(() => {
     void boot();
   }, []);
+
+  // sync runs while the shop is unlocked (it needs the writer's clock and device identity)
+  useEffect(() => {
+    if (status !== 'ready') return;
+    void startSync();
+    return stopSync;
+  }, [status]);
 
   useEffect(() => {
     if (status !== 'booting') void SplashScreen.hideAsync();

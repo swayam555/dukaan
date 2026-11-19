@@ -62,8 +62,9 @@ public class PairingController {
             throw ApiException.conflict("device_exists", "device id or bill prefix " + body.device().prefix() + " already used in this shop");
         }
         var principal = new DevicePrincipal(body.device().id(), shopId, "cashier", body.device().prefix());
-        var name = jdbc.sql("SELECT name FROM shop WHERE id = ?").param(shopId).query(String.class).single();
-        return Map.of("token", jwt.issue(principal), "shopId", shopId, "shopName", name, "role", "cashier");
+        var shopRow = jdbc.sql("SELECT name, gstin, state_code FROM shop WHERE id = ?").param(shopId).query().singleRow();
+        return Map.of("token", jwt.issue(principal), "shopId", shopId, "shopName", shopRow.get("name"),
+                "gstin", shopRow.get("gstin"), "stateCode", shopRow.get("state_code"), "role", "cashier");
     }
 
     private static String key(String token) {

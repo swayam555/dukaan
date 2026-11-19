@@ -38,6 +38,28 @@ export async function createShop(db: SqlDriver, input: CreateShopInput): Promise
   return { shop, device };
 }
 
+export type JoinShopInput = {
+  shop: { id: string; name: string; gstin: string; stateCode: string };
+  device: { id: string; prefix: string; name: string };
+  pinHash: string;
+  pinLength: number;
+};
+
+/** A cashier phone joining an existing shop after a pairing claim: same shop id, its own device + bill series.
+ *  The catalogue, stock and khata arrive through the first sync pull. */
+export async function joinShop(db: SqlDriver, input: JoinShopInput): Promise<{ shop: ShopProfile; device: DeviceIdentity }> {
+  if (!validatePrefix(input.device.prefix)) throw new Error('prefix must be 1–4 capital letters/digits starting with a letter');
+  const shop: ShopProfile = { ...input.shop, address: '', phone: '', upiVpa: '', pharmacyMode: false, invoiceFooter: '' };
+  const device: DeviceIdentity = { ...input.device, shopId: shop.id, role: 'cashier' };
+  await db.transaction(async (tx) => {
+    await setMeta(tx, META.shop, shop);
+    await setMeta(tx, META.device, device);
+    await setMeta(tx, META.lock, { pinHash: input.pinHash, pinLength: input.pinLength, biometric: false, failedAttempts: 0, lockedUntil: 0 } satisfies LockSettings);
+    await tx.execute('INSERT OR IGNORE INTO bill_series(prefix, next_seq) VALUES (?, 1)', [input.device.prefix]);
+  });
+  return { shop, device };
+}
+
 export type ShopPatch = Partial<Omit<ShopProfile, 'id' | 'stateCode'>>;
 
 /** Owner edits the shop profile. State code is fixed at setup (it decides CGST/SGST vs IGST on every past bill). */

@@ -18,3 +18,5 @@ export * from './repos/print';
 export * from './sync/transport';
 export * from './sync/engine';
 export * from './sync/memory-server';
+export * from './sync/http-transport';
+export * from './sync/api';

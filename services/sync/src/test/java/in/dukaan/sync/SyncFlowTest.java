@@ -65,7 +65,7 @@ class SyncFlowTest {
         var token = (String) post(owner, "/v1/pairing/token", Map.of()).get("token");
         var id = UUID.randomUUID();
         var res = post(null, "/v1/pairing/claim", Map.of("token", token, "device", Map.of("id", id, "name", "Counter " + prefix, "prefix", prefix)));
-        assertThat(res).containsEntry("role", "cashier").containsEntry("shopName", "Sharma Kirana");
+        assertThat(res).containsEntry("role", "cashier").containsEntry("shopName", "Sharma Kirana").containsKey("stateCode");
         return new Paired(id, (String) res.get("token"));
     }
 
